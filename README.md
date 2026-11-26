@@ -131,3 +131,6 @@ Studio menu: Dark, Light and OLED theme; accent picker; persistent settings; lef
 
 ## v0.6 Production Tools
 See [implementation status and limitations](docs/PRODUCTION_TOOLS.md). Use Production menu for build resolution, input, joints; object inspector for NPC navigation and particle texture. Source-only experimental release, compilation not verified.
+
+## v0.7 — Demo & Build focus
+New editable Signal Lost demo: `examples/signal_lost/project.forge.json`. Use `PLAY_DEMO.bat` or run `BUILD_WINDOWS.bat` to check/test/build/package. See [acceptance checklist](docs/SIGNAL_LOST.md). Source only: Rust compiler and Windows runner are unavailable in the authoring environment. The preceding README sections describe retained historical features, not newly verified functionality.

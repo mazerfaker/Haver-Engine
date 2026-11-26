@@ -1,0 +1,1944 @@
+{
+  "schema": 2,
+  "name": "Forge: Signal Lost",
+  "settings": {
+    "ambient": 0.85,
+    "rapier": false,
+    "production": {
+      "resolution": [
+        1280,
+        720
+      ]
+    },
+    "widgets": [
+      {
+        "text": "LEFT",
+        "action": "left",
+        "anchor": [
+          0.03,
+          0.87
+        ],
+        "size": [
+          85,
+          45
+        ]
+      },
+      {
+        "text": "RIGHT",
+        "action": "right",
+        "anchor": [
+          0.12,
+          0.87
+        ],
+        "size": [
+          85,
+          45
+        ]
+      },
+      {
+        "text": "JUMP",
+        "action": "jump",
+        "anchor": [
+          0.87,
+          0.87
+        ],
+        "size": [
+          100,
+          45
+        ]
+      }
+    ]
+  },
+  "objects": [
+    {
+      "id": "1caa08af-7416-5394-a059-2f22fef17811",
+      "name": "City",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        1280,
+        720
+      ],
+      "rotation": 0,
+      "layer": -10,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/city.png",
+      "player": false
+    },
+    {
+      "id": "080e4792-caad-54f3-9bcb-ef3deeec2df2",
+      "name": "Tile -18",
+      "position": [
+        -576,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -18,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "539ec90f-ec06-5f48-91c6-d092035e54c1",
+      "name": "Tile -17",
+      "position": [
+        -544,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -17,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "0f951823-ede7-5d9d-95ec-a814ec190f9f",
+      "name": "Tile -16",
+      "position": [
+        -512,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -16,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "0fa23e58-c8a9-5116-96aa-a182c4ad22de",
+      "name": "Tile -15",
+      "position": [
+        -480,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -15,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "b3a7bb52-c81b-51d6-99bb-39fa2fa7bdaa",
+      "name": "Tile -14",
+      "position": [
+        -448,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -14,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "01f1d689-4974-5e02-a915-cb4fce856dcd",
+      "name": "Tile -13",
+      "position": [
+        -416,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -13,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "d1a57460-8c6a-517b-bed4-b815fb718843",
+      "name": "Tile -12",
+      "position": [
+        -384,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -12,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "232d16b0-a8ad-5df2-9eeb-0d36be1f3c85",
+      "name": "Tile -11",
+      "position": [
+        -352,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -11,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "aa850dd5-ec9a-5eb9-a93f-2bb40170a2fa",
+      "name": "Tile -10",
+      "position": [
+        -320,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -10,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "f2700d76-6e97-5504-816f-80fae52e6095",
+      "name": "Tile -9",
+      "position": [
+        -288,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -9,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "1b00f591-0b73-55ff-b089-397db1c09bbe",
+      "name": "Tile -8",
+      "position": [
+        -256,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -8,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "35371d8b-2299-577a-93c3-73e90715c090",
+      "name": "Tile -7",
+      "position": [
+        -224,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -7,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "07b466a5-e836-58a4-a251-f877489d1ed3",
+      "name": "Tile -6",
+      "position": [
+        -192,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -6,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "ff6a365d-d877-52df-8174-24c61bd43f91",
+      "name": "Tile -5",
+      "position": [
+        -160,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -5,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "2e777ad6-5d2c-5856-9e28-007d20b80a7c",
+      "name": "Tile -4",
+      "position": [
+        -128,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -4,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "b882a630-ed94-5dbe-99cd-c1c2b93eb350",
+      "name": "Tile -3",
+      "position": [
+        -96,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -3,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "f293e738-c2a0-52aa-8cc9-b54e4def8887",
+      "name": "Tile -2",
+      "position": [
+        -64,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -2,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "830a8a72-51cf-5354-8356-355ec6d9b765",
+      "name": "Tile -1",
+      "position": [
+        -32,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          -1,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "62014074-9c80-540a-8c98-a1c92cf53da9",
+      "name": "Tile 0",
+      "position": [
+        0,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          0,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "3427683e-5c58-557b-87bc-c0c761676fdf",
+      "name": "Tile 1",
+      "position": [
+        32,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          1,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "22b24b90-bd8b-5307-a9ec-741589736fd8",
+      "name": "Tile 2",
+      "position": [
+        64,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          2,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "3f8af69d-a18a-54b7-a1da-c899698bdf90",
+      "name": "Tile 3",
+      "position": [
+        96,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          3,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "67008870-d1fa-5ba3-9bec-8bb5cbfaf911",
+      "name": "Tile 4",
+      "position": [
+        128,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          4,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "f8a435c6-42ff-5f0d-84a3-28728d5ac0fe",
+      "name": "Tile 5",
+      "position": [
+        160,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          5,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "66230be0-2cf7-5a37-9f65-1a3a31b833a3",
+      "name": "Tile 6",
+      "position": [
+        192,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          6,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "ca8d2f76-a90d-5417-bb43-b7c98eb1ae8e",
+      "name": "Tile 7",
+      "position": [
+        224,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          7,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "9dd4f792-a1cb-5da5-8c8d-a6ad0c80274e",
+      "name": "Tile 8",
+      "position": [
+        256,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          8,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "cffa14b9-cd64-5861-923f-c3b2e412beff",
+      "name": "Tile 9",
+      "position": [
+        288,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          9,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "2f9ec819-8a8d-5690-a4e8-cfc88d7bb945",
+      "name": "Tile 10",
+      "position": [
+        320,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          10,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "2c4309b2-bf16-564f-bacc-8f4a308f049c",
+      "name": "Tile 11",
+      "position": [
+        352,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          11,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "97832b52-38f4-5000-8194-65fba96fb094",
+      "name": "Tile 12",
+      "position": [
+        384,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          12,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "9a5d86a9-0226-553e-b6f6-74fec90b5507",
+      "name": "Tile 13",
+      "position": [
+        416,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          13,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "484aa765-bf21-51dd-9524-dff1a2806443",
+      "name": "Tile 14",
+      "position": [
+        448,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          14,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "ecd4c93b-aa1c-5880-8240-e17c9f72e839",
+      "name": "Tile 15",
+      "position": [
+        480,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          15,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "89cd7f79-e888-5d0d-8f0d-2d3d9cd3bf2c",
+      "name": "Tile 16",
+      "position": [
+        512,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          16,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "40237cc5-c215-573d-8a95-c2d4df088ccf",
+      "name": "Tile 17",
+      "position": [
+        544,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          17,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "646cfbbe-7d87-582c-b5b7-4daf4dadb562",
+      "name": "Tile 18",
+      "position": [
+        576,
+        -224
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/tiles.png",
+      "player": false,
+      "body": "Static",
+      "tile": {
+        "layer": 0,
+        "cell": [
+          18,
+          -7
+        ],
+        "grid": 32
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 4,
+        "frames": 1,
+        "fps": 0,
+        "looping": true,
+        "start": 10
+      }
+    },
+    {
+      "id": "6812410a-8a29-5841-8dda-7de70b125ec3",
+      "name": "Platform 0",
+      "position": [
+        -140,
+        -125
+      ],
+      "size": [
+        120,
+        20
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        87,
+        112,
+        128,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "078ff4c2-4759-54df-9c8f-ec12a138f679",
+      "name": "Platform 1",
+      "position": [
+        65,
+        -40
+      ],
+      "size": [
+        120,
+        20
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        87,
+        112,
+        128,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "5b60e07d-a9fa-5358-bd72-0ae607e3054e",
+      "name": "Platform 2",
+      "position": [
+        260,
+        -115
+      ],
+      "size": [
+        120,
+        20
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        87,
+        112,
+        128,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "8cd58d9a-f9cc-5930-9fc1-af4b1716d5b7",
+      "name": "Core:1",
+      "position": [
+        -140,
+        -91
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/core.png",
+      "player": false,
+      "body": "Trigger",
+      "pro": {
+        "light": {
+          "radius": 100,
+          "intensity": 0.8,
+          "color": [
+            0.3,
+            1,
+            0.9
+          ]
+        }
+      }
+    },
+    {
+      "id": "c1071458-bb59-5b4b-a98e-82bbd93214ff",
+      "name": "Core:2",
+      "position": [
+        65,
+        -6
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/core.png",
+      "player": false,
+      "body": "Trigger",
+      "pro": {
+        "light": {
+          "radius": 100,
+          "intensity": 0.8,
+          "color": [
+            0.3,
+            1,
+            0.9
+          ]
+        }
+      }
+    },
+    {
+      "id": "20a79d1b-09c2-5bdd-98d8-8503492bd262",
+      "name": "Core:3",
+      "position": [
+        260,
+        -81
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/core.png",
+      "player": false,
+      "body": "Trigger",
+      "pro": {
+        "light": {
+          "radius": 100,
+          "intensity": 0.8,
+          "color": [
+            0.3,
+            1,
+            0.9
+          ]
+        }
+      }
+    },
+    {
+      "id": "9ff53def-072d-59ae-9840-f9ebd59fcfa3",
+      "name": "Player",
+      "position": [
+        -470,
+        -110
+      ],
+      "size": [
+        48,
+        64
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/hero.png",
+      "player": true,
+      "body": "Dynamic",
+      "material": {
+        "speed": 230,
+        "jump_speed": 410
+      },
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "frames": 1,
+        "fps": 8,
+        "looping": true
+      },
+      "motion": {
+        "auto_state": true
+      },
+      "clips": {
+        "Idle": {
+          "columns": 4,
+          "rows": 1,
+          "frames": 1,
+          "fps": 8,
+          "looping": true
+        },
+        "Run": {
+          "columns": 4,
+          "rows": 1,
+          "frames": 4,
+          "fps": 10,
+          "looping": true
+        },
+        "Jump": {
+          "columns": 4,
+          "rows": 1,
+          "frames": 1,
+          "start": 2,
+          "fps": 8,
+          "looping": false
+        }
+      },
+      "script": "function on_trigger(name) emit(\"Contact: \" .. name) end"
+    },
+    {
+      "id": "a0b6dc4f-56df-5707-8efc-155b5023412b",
+      "name": "Exit",
+      "position": [
+        490,
+        -160
+      ],
+      "size": [
+        64,
+        96
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/exit.png",
+      "player": false,
+      "body": "Trigger"
+    },
+    {
+      "id": "f3a60e7b-3e62-54a7-b8bb-69109e7841b4",
+      "name": "Drone",
+      "position": [
+        -400,
+        100
+      ],
+      "size": [
+        48,
+        32
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/drone.png",
+      "player": false,
+      "production": {
+        "navigation": {
+          "target": [
+            410,
+            100
+          ],
+          "speed": 45,
+          "grid": 32,
+          "enabled": true
+        }
+      }
+    },
+    {
+      "id": "14c4c940-96ed-578c-bb22-1238f90f083d",
+      "name": "Steam",
+      "position": [
+        380,
+        -195
+      ],
+      "size": [
+        1,
+        1
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "production": {
+        "particle_texture": "assets/spark.png"
+      },
+      "pro": {
+        "emitter": {
+          "effect": "Smoke",
+          "rate": 12,
+          "lifetime": 2,
+          "velocity": [
+            12,
+            50
+          ],
+          "color": [
+            100,
+            175,
+            183,
+            140
+          ],
+          "size": 8
+        }
+      }
+    },
+    {
+      "id": "b3a2ab94-7041-5d4e-a43f-8ab8bdc417da",
+      "name": "Ambient",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "sound": {
+          "path": "assets/ambient.wav",
+          "music": true,
+          "looping": true,
+          "volume": 0.4
+        }
+      }
+    },
+    {
+      "id": "d0fb50a4-9945-5e94-a841-a0c6b9bb777e",
+      "name": "Graph diagnostic",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "graph": {
+        "nodes": [
+          "Update",
+          "AddVariable"
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ]
+        ],
+        "params": {
+          "1": {
+            "variable": "ticks",
+            "value": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "cd08867a-e9a8-546a-91d2-ebf4cfc09f75",
+      "name": "Camera",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        1280,
+        720
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "camera": true
+    }
+  ]
+}

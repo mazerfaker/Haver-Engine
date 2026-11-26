@@ -87,3 +87,6 @@ pub use pro_gameplay::*;
 
 mod production;
 pub use production::*;
+
+mod demo;
+pub use demo::*;

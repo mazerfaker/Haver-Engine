@@ -1,16 +1,39 @@
-name: Windows build
+name: Forge Windows verification
 on: [push, workflow_dispatch]
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --all-targets
-      - run: cargo build --release --bins
+      - name: Check, test, build and smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Invoke-Cargo { & cargo @args 2>&1 | Tee-Object -FilePath forge-check.log -Append; if ($LASTEXITCODE -ne 0) { throw "Cargo failed: $args" } }
+          Invoke-Cargo check --all-targets
+          Invoke-Cargo test --all-targets
+          Invoke-Cargo build --release --bins
+          & target/release/forge_player.exe --smoke examples/signal_lost/project.forge.json
+          if ($LASTEXITCODE -ne 0) { throw 'Smoke failed' }
+      - name: Package verified binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/SignalLost | Out-Null
+          Copy-Item target/release/forge_editor.exe dist/ForgeEngine.exe
+          Copy-Item target/release/forge_player.exe dist/ForgePlayer.exe
+          Copy-Item target/release/forge_player.exe dist/SignalLost/ForgePlayer.exe
+          Copy-Item examples/signal_lost/project.forge.json dist/SignalLost/
+          Copy-Item examples/signal_lost/assets dist/SignalLost/ -Recurse
+          Copy-Item RUN_GAME.bat dist/SignalLost/PLAY.bat
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-Windows
-          path: |
-            target/release/forge_editor.exe
-            target/release/forge_player.exe
+          name: ForgeEngine-v0.7-Windows
+          path: dist/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Forge-build-log
+          path: forge-check.log
+          if-no-files-found: ignore
