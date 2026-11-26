@@ -1,3 +1,7 @@
+# Forge Engine v0.7.6 — Professional & Performance
+
+Experimental source update. See [performance report](docs/PERFORMANCE_076.md). Start with CHECK_WINDOWS.bat. No compiled binaries supplied.
+
 # Forge Engine v0.5 — Gameplay PRO
 
 Experimental source update. See [Gameplay PRO](docs/GAMEPLAY_PRO.md) and [platform export](docs/PLATFORM_EXPORT.md). Previous documentation below is retained for legacy features.

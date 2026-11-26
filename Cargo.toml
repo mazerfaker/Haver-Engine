@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.7.5"
+version = "0.7.6"
 edition = "2024"
 default-run = "forge_editor"
 
@@ -19,3 +19,21 @@ rapier2d = "=0.22.0"
 
 [profile.release]
 lto = "thin"
+strip = "debuginfo"
+
+[profile.performance]
+inherits = "release"
+opt-level = 3
+codegen-units = 1
+
+[profile.lightweight]
+inherits = "release"
+opt-level = "z"
+codegen-units = 1
+strip = "symbols"
+lto = "fat"
+
+[profile.development]
+inherits = "dev"
+opt-level = 1
+
