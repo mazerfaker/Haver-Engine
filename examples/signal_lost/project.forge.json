@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "name": "Forge: Signal Lost",
+  "name": "Signal Lost PRO / Sector 1",
   "settings": {
     "ambient": 0.85,
     "rapier": false,
@@ -69,7 +69,7 @@
         255,
         255
       ],
-      "sprite": "assets/city.png",
+      "sprite": "assets/sector1.png",
       "player": false
     },
     {
@@ -1939,6 +1939,29 @@
       "sprite": null,
       "player": false,
       "camera": true
+    },
+    {
+      "id": "58965acc-4b98-535a-abec-a646076ecb47",
+      "name": "Enemy:1",
+      "position": [
+        -110,
+        -174
+      ],
+      "size": [
+        48,
+        32
+      ],
+      "rotation": 0,
+      "layer": 3,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/enemy.png",
+      "player": false,
+      "production": {}
     }
   ]
 }

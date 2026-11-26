@@ -15,8 +15,12 @@ jobs:
           Invoke-Cargo check --all-targets
           Invoke-Cargo test --all-targets
           Invoke-Cargo build --release --bins
-          & target/release/forge_player.exe --smoke examples/signal_lost/project.forge.json
-          if ($LASTEXITCODE -ne 0) { throw 'Smoke failed' }
+          Get-ChildItem examples/signal_lost/*.forge.json | ForEach-Object {
+            & target/release/forge_player.exe --smoke $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Smoke failed' }
+            Invoke-Cargo run --bin forge_editor -- --editor-qa $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Editor model QA failed' }
+          }
       - name: Package verified binaries
         shell: pwsh
         run: |
@@ -24,12 +28,12 @@ jobs:
           Copy-Item target/release/forge_editor.exe dist/ForgeEngine.exe
           Copy-Item target/release/forge_player.exe dist/ForgePlayer.exe
           Copy-Item target/release/forge_player.exe dist/SignalLost/ForgePlayer.exe
-          Copy-Item examples/signal_lost/project.forge.json dist/SignalLost/
+          Copy-Item examples/signal_lost/*.forge.json dist/SignalLost/
           Copy-Item examples/signal_lost/assets dist/SignalLost/ -Recurse
           Copy-Item RUN_GAME.bat dist/SignalLost/PLAY.bat
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7-Windows
+          name: ForgeEngine-v0.7.3-Windows
           path: dist/
       - uses: actions/upload-artifact@v4
         if: always()

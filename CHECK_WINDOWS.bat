@@ -6,7 +6,10 @@ where cargo >nul 2>&1 || (echo Install Rust MSVC and Visual Studio C++ Build Too
 >>forge-check.log cargo --version
 cargo check --all-targets >>forge-check.log 2>&1 || goto failed
 cargo test --all-targets >>forge-check.log 2>&1 || goto failed
-cargo run --bin forge_player -- --smoke examples/signal_lost/project.forge.json >>forge-check.log 2>&1 || goto failed
+for %%F in (examples\signal_lost\*.forge.json) do (
+  cargo run --bin forge_player -- --smoke "%%F" >>forge-check.log 2>&1 || goto failed
+  cargo run --bin forge_editor -- --editor-qa "%%F" >>forge-check.log 2>&1 || goto failed
+)
 echo PASS. See forge-check.log.
 exit /b 0
 :failed

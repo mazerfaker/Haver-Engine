@@ -134,3 +134,10 @@ See [implementation status and limitations](docs/PRODUCTION_TOOLS.md). Use Produ
 
 ## v0.7 — Demo & Build focus
 New editable Signal Lost demo: `examples/signal_lost/project.forge.json`. Use `PLAY_DEMO.bat` or run `BUILD_WINDOWS.bat` to check/test/build/package. See [acceptance checklist](docs/SIGNAL_LOST.md). Source only: Rust compiler and Windows runner are unavailable in the authoring environment. The preceding README sections describe retained historical features, not newly verified functionality.
+
+## v0.7.3 — Demo & Editor QA consolidated update
+
+- Signal Lost PRO: three editable sector JSON files in `examples/signal_lost`, new pixel backgrounds and enemy art, patrol enemies, three health points, damage cooldown, menu and retry, sector progression, collect/hurt/win WAV effects. Use A/D, W, Esc, Enter, R, N. The original v0.7 archive is unchanged. The first sector is `project.forge.json`; start it for the campaign. Opening another level directly plays it independently.
+- Editor Play mode uses the same core/health rules and displays a compact status. Campaign transitions and audio cues are standalone-only. Save As now copies referenced sound/particle/normal map paths as well as sprites. Standalone renderer removes obsolete entities after scene changes.
+- New `--editor-qa` model checks and all-sector smoke gates. See `docs/EDITOR_QA_073.md` for manual tests and limitations.
+- `python tools/validate_demo.py` validates all three sector data files and cues. No Rust toolchain is available in the authoring environment, so no compilation, unit test execution, Windows EXE or GUI QA is claimed. All new Rust features remain experimental until build verification.
