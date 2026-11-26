@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "name": "Forge Demo",
   "objects": [
     {
@@ -22,7 +22,8 @@
         255
       ],
       "sprite": null,
-      "player": false
+      "player": false,
+      "body": "Static"
     },
     {
       "id": "3f4b8d7d-ce33-4bfe-99b3-f0fb56ad94cb",
@@ -44,7 +45,8 @@
         255
       ],
       "sprite": null,
-      "player": false
+      "player": false,
+      "body": "Static"
     },
     {
       "id": "c8e2e8e7-51e3-4dd7-8181-1a3355766364",
@@ -65,8 +67,16 @@
         255,
         255
       ],
-      "sprite": "assets/player.png",
-      "player": true
+      "sprite": "assets/runner.png",
+      "player": true,
+      "body": "Dynamic",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "frames": 4,
+        "fps": 8,
+        "looping": true
+      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 default-run = "forge_editor"
 
@@ -12,6 +12,7 @@ serde_json = "1"
 rfd = "0.15"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+mlua = { version = "0.10", features = ["lua54", "vendored", "send"] }
 
 [profile.release]
 lto = "thin"
