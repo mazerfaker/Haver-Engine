@@ -5,6 +5,7 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Object {
     pub id: Uuid,
+    #[serde(default)] pub motion: Motion,
     pub name: String,
     pub position: [f32; 2],
     pub size: [f32; 2],
@@ -24,7 +25,7 @@ pub struct Object {
 }
 impl Object {
     pub fn new(name: &str, position: [f32; 2], size: [f32; 2], color: [u8; 4]) -> Self {
-        Self { id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
+        Self { motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -62,3 +63,6 @@ mod runtime;
 pub use runtime::*;
 
 fn default_clip()->String{"Idle".into()}
+
+mod ultimate;
+pub use ultimate::*;

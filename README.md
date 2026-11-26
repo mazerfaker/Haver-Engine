@@ -66,3 +66,9 @@ Compile/test on Windows; actual Bevy render-to-texture viewport; recursive hiera
 - Existing native Bevy viewport and runtime retained. No web stack.
 
 Not implemented: free docking, separate scene tabs, marquee selection, drag reparenting, prefab files, keyframe property curves, state machine, pivot/hitbox editing, persistent preferences, full localization and memory profiler. Grouping is organizational; inherited transforms are not implemented. No compiler available here; source changes and tests are not build-verified. Windows build via BUILD_WINDOWS.bat.
+
+## v0.3.3 Native Editor Ultimate — experimental increment
+
+Implemented in source: independent project tabs (per-tab undo/redo and paths), workspace preferences stored under APPDATA/ForgeEngine/settings.json (or HOME), switchable side panels, viewport rulers and marquee center selection, camera bounds overlay, prefab subtree serialization with fresh UUIDs on import, motion keyframes with linear/ease interpolation, X curve visualization, normalized pivot and per-frame hitbox metadata, basic Idle/Run/Jump selection in runtime. Static non-player objects with Body=None can be animated by transform keys. Prefabs reference existing project-relative assets; cross-project resource bundling is not implemented. Camera bounds are illustrative 640×360, not a separate rendered camera feed. Hitboxes and pivot metadata are not applied to physics/rendering yet. Curve handles, true dock drag/drop, hierarchy transforms, full localization, automatic crash recovery and OS memory profiler remain incomplete. Existing recovery files and source modules retained. Scene tabs are separate project documents, not a multi-scene runtime.
+
+Windows: run BUILD_WINDOWS.bat or use the included GitHub Actions workflow. No Rust toolchain in authoring environment; no successful compilation or GUI test is claimed. New tests in src/ultimate.rs are unexecuted.
