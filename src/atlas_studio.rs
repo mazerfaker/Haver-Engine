@@ -15,3 +15,12 @@ pub fn pack_atlas_frames(paths:&[PathBuf],root:&Path)->Result<Object,String>{
  let mut o=Object::new("Atlas animation",[0.;2],[frames[0].width() as f32,frames[0].height() as f32],[255;4]);o.sprite=Some(rel);o.animation=Animation{frames:paths.len() as u32,regions,..Default::default()};o.clips.insert(o.clip_name.clone(),o.animation.clone());Ok(o)
 }
 #[cfg(test)]mod tests{use super::*;#[test]fn irregular_uv(){let a=Animation{frames:2,regions:vec![[0.,0.,0.25,0.5],[0.5,0.25,0.25,0.25]],fps:1.,..Default::default()};assert_eq!(a.frame(1.1),1);assert_eq!(a.uv(1.1)[2],[0.75,0.5]);assert!(!valid_region([0.9,0.,0.2,1.]));}#[test]fn pack_roundtrip(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());fs::create_dir_all(&root).unwrap();let a=root.join("a.png");let b=root.join("b.png");image::RgbaImage::new(13,7).save(&a).unwrap();image::RgbaImage::new(5,19).save(&b).unwrap();let o=pack_atlas_frames(&[a,b],&root).unwrap();assert_eq!(o.animation.regions.len(),2);assert!(o.animation.regions.iter().copied().all(valid_region));assert!(root.join(o.sprite.unwrap()).exists());fs::remove_dir_all(root).unwrap();}}
+
+/// Edit a normalized atlas rectangle without allowing it outside the texture.
+pub fn drag_region(r:[f32;4],delta:[f32;2],pixels:[u32;2],resize:bool)->[f32;4]{
+ if !valid_region(r)||!delta.iter().all(|v|v.is_finite())||pixels.contains(&0){return r;}
+ let [x,y,w,h]=r;let min_w=(1./pixels[0] as f32).min((1.-x).max(f32::EPSILON));let min_h=(1./pixels[1] as f32).min((1.-y).max(f32::EPSILON));
+ if resize{[x,y,(w+delta[0]).clamp(min_w,(1.-x).max(min_w)),(h+delta[1]).clamp(min_h,(1.-y).max(min_h))]}else{[(x+delta[0]).clamp(0.,(1.-w).max(0.)),(y+delta[1]).clamp(0.,(1.-h).max(0.)),w,h]}
+}
+pub fn snap_region_pixels(r:[f32;4],pixels:[u32;2])->[f32;4]{if !valid_region(r)||pixels.contains(&0){return r;}let w=pixels[0] as f32;let h=pixels[1] as f32;let x=(r[0]*w).round().clamp(0.,w-1.);let y=(r[1]*h).round().clamp(0.,h-1.);let right=((r[0]+r[2])*w).round().clamp(x+1.,w);let bottom=((r[1]+r[3])*h).round().clamp(y+1.,h);[x/w,y/h,(right-x)/w,(bottom-y)/h]}
+#[cfg(test)]mod edit_tests{use super::*;#[test]fn bounded_drag(){let r=[0.2,0.3,0.4,0.5];let moved=drag_region(r,[2.,-2.],[100,100],false);assert!(valid_region(moved));assert_eq!(moved[1],0.);let small=drag_region(r,[-2.,-2.],[100,100],true);assert_eq!(small[2],0.01);assert!(valid_region(small));}#[test]fn pixel_snap(){assert_eq!(snap_region_pixels([0.11,0.29,0.36,0.43],[10,10]),[0.1,0.3,0.4,0.4]);}}

@@ -11,7 +11,9 @@ impl DockTree{
  pub(super) fn valid(&self)->bool{let mut seen=[false;4];self.collect(&mut seen,0)&&seen.iter().all(|x|*x)}
  fn remove(self,id:u8)->Option<Self>{match self{Self::Tabs{mut panels,mut active}=>{panels.retain(|p|*p!=id);if panels.is_empty(){return None;}if !panels.contains(&active){active=panels[0];}Some(Self::Tabs{panels,active})},Self::Split{vertical,ratio,a,b}=>match((*a).remove(id),(*b).remove(id)){(Some(a),Some(b))=>Some(Self::split(vertical,ratio,a,b)),(a,None)=>a,(None,b)=>b}}}
  fn insert(&mut self,target:u8,id:u8,place:u8)->bool{match self{Self::Tabs{panels,active} if panels.contains(&target)=>{if place==0{panels.push(id);*active=id;}else{let old=self.clone();let new=Self::leaf(id);*self=if place==1||place==3{Self::split(place==3,0.35,new,old)}else{Self::split(place==4,0.65,old,new)};}true},Self::Tabs{..}=>false,Self::Split{a,b,..}=>a.insert(target,id,place)||b.insert(target,id,place)}}
- fn move_panel(&mut self,source:u8,target:u8,place:u8){if source==target||source>=4||target>=4||place>4{return;}if let Some(mut next)=self.clone().remove(source){if next.insert(target,source,place)&&next.valid(){*self=next;}}}
+ /// Reorder a tab within its current leaf without collapsing and rebuilding the tree.
+ fn reorder(&mut self,source:u8,target:u8)->bool{match self{Self::Tabs{panels,active}=>{if let (Some(from),Some(_))=(panels.iter().position(|p|*p==source),panels.iter().position(|p|*p==target)){panels.remove(from);let to=panels.iter().position(|p|*p==target).unwrap();panels.insert(to,source);*active=source;true}else{false}},Self::Split{a,b,..}=>a.reorder(source,target)||b.reorder(source,target)}}
+ fn move_panel(&mut self,source:u8,target:u8,place:u8){if source==target||source>=4||target>=4||place>4{return;}if place==0&&self.reorder(source,target){return;}if let Some(mut next)=self.clone().remove(source){if next.insert(target,source,place)&&next.valid(){*self=next;}}}
 }
 #[derive(Clone,Copy)]struct DragPanel(u8);
 fn title(uk:bool,i:u8)->&'static str{match i{0=>tr(uk,"Сцена","Scene"),1=>tr(uk,"Інспектор","Inspector"),2=>tr(uk,"Інструменти","Tools"),_=>tr(uk,"Вигляд","Viewport")}}
@@ -26,3 +28,5 @@ pub(super) fn show(ctx:&egui::Context,tree:&mut DockTree,uk:bool,mut body:impl F
  if !tree.valid(){*tree=DockTree::default();}let mut req=None;egui::CentralPanel::default().show(ctx,|ui|{let r=ui.available_rect_before_wrap();ui.allocate_rect(r,egui::Sense::hover());render(tree,ui,r,egui::Id::new("forge_dock_tree_0720"),uk,&mut req,&mut body);});if let Some((source,target,place))=req{tree.move_panel(source,target,place);}
 }
 #[cfg(test)]mod tests{use super::*;#[test]fn split_tab_and_restore(){let mut t=DockTree::default();assert!(t.valid());t.move_panel(0,1,0);assert!(t.valid());t.move_panel(2,1,3);assert!(t.valid());assert_eq!(t,serde_json::from_slice::<DockTree>(&serde_json::to_vec(&t).unwrap()).unwrap());}}
+
+#[cfg(test)]mod reorder_tests{use super::*;#[test]fn reorder_keeps_tabs(){let mut t=DockTree::Tabs{panels:vec![0,1,2,3],active:0};t.move_panel(3,1,0);assert_eq!(t,DockTree::Tabs{panels:vec![0,3,1,2],active:3});assert!(t.valid());}}

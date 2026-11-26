@@ -5,6 +5,7 @@ pub fn validate_prefab(objects:&[Object])->Result<(),String>{
  let map:HashMap<_,_>=objects.iter().map(|o|(o.id,o.parent)).collect();if map.len()!=objects.len(){return Err("Duplicate prefab ID".into());}
  for o in objects{if !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|v|v.is_finite())||o.size.iter().any(|v|*v<=0.){return Err("Invalid prefab transform".into());}
  for path in [&o.sprite,&o.production.normal_map,&o.production.particle_texture].into_iter().flatten(){if !crate::valid_asset(path){return Err("Invalid prefab asset path".into());}}
+ if let Some(sound)=&o.pro.sound{if !sound.path.is_empty()&&!crate::valid_asset(&sound.path){return Err("Invalid prefab sound path".into());}}
  let mut seen=HashSet::from([o.id]);let mut parent=o.parent;while let Some(id)=parent{if !seen.insert(id){return Err("Prefab hierarchy cycle".into());}parent=*map.get(&id).ok_or("Missing prefab parent")?;}}
  Ok(())
 }
@@ -20,13 +21,21 @@ pub fn instantiate_linked(source:Vec<Object>,file:&str,offset:[f32;2])->Result<V
 /// component groups may be explicitly overridden. Refuse topology changes instead of losing local objects.
 pub fn refresh_linked(project:&mut crate::Project,instance:uuid::Uuid,source:&[Object])->Result<usize,String>{
  validate_prefab(source)?;let source_map:HashMap<_,_>=source.iter().map(|o|(o.id,o)).collect();let local:Vec<_>=project.objects.iter().filter(|o|o.prefab_link.as_ref().is_some_and(|l|l.instance==instance)).collect();if local.is_empty(){return Err("No linked instance".into());}let keys:HashSet<_>=local.iter().map(|o|o.prefab_link.as_ref().unwrap().source).collect();if keys.len()!=local.len()||keys.len()!=source_map.len()||keys.iter().any(|id|!source_map.contains_key(id)){return Err("Prefab membership changed; insert a new instance or unlink before editing".into());}
+ let local_sources:HashMap<_,_>=local.iter().map(|o|(o.id,o.prefab_link.as_ref().unwrap().source)).collect();
+ let file=&local[0].prefab_link.as_ref().unwrap().file;
+ for old in &local {let link=old.prefab_link.as_ref().unwrap();if &link.file!=file{return Err("Mixed prefab sources in instance".into());}let parent=old.parent.and_then(|id|local_sources.get(&id).copied());if parent!=source_map[&link.source].parent{return Err("Prefab hierarchy changed; refresh refused".into());}}
  let mut replacements=Vec::new();for old in local{let link=old.prefab_link.as_ref().unwrap();let mut next=(*source_map[&link.source]).clone();next.id=old.id;next.parent=old.parent;next.position=old.position;next.rotation=old.rotation;next.size=old.size;next.prefab_link=Some(link.clone());let keep=|name:&str|link.overrides.iter().any(|s|s==name);
- if keep("appearance"){next.name=old.name.clone();next.sprite=old.sprite.clone();next.color=old.color;next.layer=old.layer;next.production.normal_map=old.production.normal_map.clone();}
+ if keep("appearance"){next.motion.pivot=old.motion.pivot;next.name=old.name.clone();next.sprite=old.sprite.clone();next.color=old.color;next.layer=old.layer;next.production.normal_map=old.production.normal_map.clone();}
  if keep("animation"){next.animation=old.animation.clone();next.clips=old.clips.clone();next.clip_name=old.clip_name.clone();next.motion=old.motion.clone();}else{next.motion.keys=old.motion.keys.clone();}
  if keep("physics"){next.body=old.body;next.material=old.material.clone();next.pro.physics=old.pro.physics.clone();next.tile=old.tile.clone();}
- if keep("gameplay"){next.pro=old.pro.clone();next.production.particle_texture=old.production.particle_texture.clone();next.production.navigation=old.production.navigation.clone();next.player=old.player;next.camera=old.camera;}
- if keep("scripts"){next.script=old.script.clone();next.graph=old.graph.clone();}
+ if keep("gameplay"){next.pro.combat=old.pro.combat.clone();next.pro.light=old.pro.light.clone();next.pro.emitter=old.pro.emitter.clone();next.pro.sound=old.pro.sound.clone();next.pro.variables=old.pro.variables.clone();next.production.particle_texture=old.production.particle_texture.clone();next.production.navigation=old.production.navigation.clone();next.player=old.player;next.camera=old.camera;}
+ if keep("scripts"){next.script=old.script.clone();next.graph=old.graph.clone();next.pro.graph_positions=old.pro.graph_positions.clone();}
  replacements.push(next);}
  let n=replacements.len();let by_id:HashMap<_,_>=replacements.into_iter().map(|o|(o.id,o)).collect();for o in &mut project.objects{if let Some(next)=by_id.get(&o.id){*o=next.clone();}}Ok(n)
 }
 #[cfg(test)]mod linked_tests{use super::*;#[test]fn refresh_preserves_local(){let mut source=Object::new("source",[0.;2],[16.;2],[255;4]);let mut p=crate::Project::default();let mut o=instantiate_linked(vec![source.clone()],"a.prefab.json",[8.,9.]).unwrap().remove(0);let id=o.id;let link=o.prefab_link.as_mut().unwrap();let instance=link.instance;link.overrides.push("appearance".into());o.name="local".into();p.objects.push(o);source.name="updated".into();source.script="new".into();assert_eq!(refresh_linked(&mut p,instance,&[source]).unwrap(),1);let o=p.objects.last().unwrap();assert_eq!(o.id,id);assert_eq!(o.name,"local");assert_eq!(o.position,[8.,9.]);assert_eq!(o.script,"new");}}
+
+#[cfg(test)]mod refresh_regressions{use super::*;
+ #[test]fn changed_parent_is_atomic(){let a=Object::new("a",[0.;2],[8.;2],[255;4]);let mut b=Object::new("b",[0.;2],[8.;2],[255;4]);b.parent=Some(a.id);let mut p=crate::Project::default();let linked=instantiate_linked(vec![a.clone(),b.clone()],"a.prefab.json",[0.;2]).unwrap();let id=linked[0].prefab_link.as_ref().unwrap().instance;p.objects.extend(linked);let before=p.clone();b.parent=None;assert!(refresh_linked(&mut p,id,&[a,b]).is_err());assert_eq!(p,before);}
+ #[test]fn gameplay_override_does_not_override_physics(){let mut a=Object::new("a",[0.;2],[8.;2],[255;4]);let mut p=crate::Project::default();let mut linked=instantiate_linked(vec![a.clone()],"a.prefab.json",[0.;2]).unwrap().remove(0);let link=linked.prefab_link.as_mut().unwrap();let id=link.instance;link.overrides.push("gameplay".into());linked.pro.variables.insert("local".into(),5.);p.objects.push(linked);a.body=crate::Body::Static;refresh_linked(&mut p,id,&[a]).unwrap();let o=p.objects.last().unwrap();assert_eq!(o.body,crate::Body::Static);assert_eq!(o.pro.variables.get("local"),Some(&5.));}
+}

@@ -1,0 +1,10 @@
+Forge Engine v0.7.21 — static QA
+PASS: 4 Signal Lost scenes (214 objects), IDs/assets/frame ranges
+PASS: Python unit/fixture tests 11/11
+PASS: 47 previous example files byte-identical
+PASS: 9 previous WGSL files byte-identical
+PASS: JSON and TOML parsed; only package version changed in Cargo.toml
+PASS: no removed files, no Cargo.lock or target in update
+PASS: ZIP CRC and overlay equality checked during packaging
+NOT RUN: Rust compiler/test runner absent; six new Rust tests unexecuted
+NOT RUN: Windows UI, audio, GPU execution, FPS/RAM/VRAM and EXE build

@@ -20,3 +20,7 @@ pub fn transition_clip(o:&mut Object,input:[f32;2],elapsed:f32)->bool {
 #[test]fn legacy_defaults(){let m:crate::Motion=serde_json::from_str("{}").unwrap();assert!(m.transitions.is_empty());}}
 
 #[cfg(test)]mod fixture_test{use super::*;#[test]fn studio_fixture(){let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/studio_pro/project.forge.json");let mut p=crate::Project::load(&path).unwrap();let o=p.objects.iter_mut().find(|o|o.player).unwrap();assert!(transition_clip(o,[1.,0.],1.));assert_eq!(o.clip_name,"Run");assert!(transition_clip(o,[0.,0.],2.));assert_eq!(o.clip_name,"Idle");assert!(p.settings.widgets.iter().any(|w|w.action=="progress"));}}
+
+/// Sample inside a frame, avoiding floating-point rounding on a frame boundary.
+pub fn frame_sample_time(a:&Animation,index:u32)->f32{let i=index.min(clip_frame_count(a)-1);let start=frame_start(a,i);start+(frame_start(a,i+1)-start)*0.5}
+#[cfg(test)]mod sample_tests{use super::*;#[test]fn sample_each_variable_frame(){let a=Animation{columns:4,frames:3,start:1,durations:vec![123,251,73],..Default::default()};for i in 0..3{assert_eq!(a.frame(frame_sample_time(&a,i)),i+1);}}}

@@ -1,0 +1,2 @@
+Forge Engine v0.7.20 -> v0.7.21
+Close editor and back up project. Extract this ZIP into existing engine root, allow replacement of files. Do not delete Cargo.lock or target. Run QUICK_CHECK.bat then QUICK_TEST.bat, QUICK_BUILD.bat and RUN_EDITOR_DEBUG.bat. No dependencies changed. See docs/RELEASE_0721.md. The new source has not been compiled in the authoring environment.

@@ -48,3 +48,21 @@ fn regions(ui:&mut egui::Ui,o:&mut Object,time:&mut f32){ui.collapsing("Irregula
  if ui.button("Append region").clicked()&&n<16384{o.animation.regions.push([0.,0.,1.,1.]);o.animation.frames=o.animation.regions.len() as u32;o.animation.start=0;o.animation.durations.clear();}
  if ui.button("Return to uniform grid").clicked(){o.animation.regions.clear();o.animation.durations.clear();*time=0.;}ui.label("Store clip to persist region edits. Unequal source sizes use the object size.");}
  });}
+
+/// Full atlas preview, drag selected frame to move, bottom-right handle resizes.
+pub(super) fn atlas_canvas(ui:&mut egui::Ui,o:&mut Object,tex:&egui::TextureHandle,time:&mut f32,playing:&mut bool){
+ if o.animation.regions.is_empty(){return;}
+ ui.collapsing("Atlas canvas / Редактор областей",|ui|{
+ let [pw,ph]=tex.size();if pw==0||ph==0{return;}
+ let pixels=[pw as u32,ph as u32];let n=clip_frame_count(&o.animation);let start=o.animation.start.min(o.animation.total_frames()-1);let mut idx=o.animation.frame(*time).saturating_sub(start).min(n-1);
+ ui.horizontal_wrapped(|ui|{if ui.add(egui::DragValue::new(&mut idx).range(0..=n-1).prefix("Frame (0-based) ")).changed(){*playing=false;*time=forge_engine::frame_sample_time(&o.animation,idx);}if ui.button("Snap to pixels").clicked(){*playing=false;if let Some(r)=o.animation.regions.get_mut((start+idx) as usize){*r=forge_engine::snap_region_pixels(*r,pixels);}}});
+ let i=(start+idx) as usize;let Some(region)=o.animation.regions.get_mut(i)else{return;};if !forge_engine::valid_region(*region){return;}
+ let scale=(ui.available_width().max(1.)/pw as f32).min(340./ph as f32);let size=egui::vec2(pw as f32*scale,ph as f32*scale);
+ let (canvas,_)=ui.allocate_exact_size(size,egui::Sense::hover());let painter=ui.painter_at(canvas);painter.image(tex.id(),canvas,egui::Rect::from_min_max(egui::pos2(0.,0.),egui::pos2(1.,1.)),egui::Color32::WHITE);
+ let rect=|r:[f32;4]|egui::Rect::from_min_size(canvas.min+egui::vec2(r[0]*size.x,r[1]*size.y),egui::vec2(r[2]*size.x,r[3]*size.y));let r=rect(*region);let handle=egui::Rect::from_center_size(r.max,egui::vec2(12.,12.)).intersect(canvas);
+ let key=ui.id().with(("atlas_edit",o.id,i));let body=ui.interact(r,key.with("move"),egui::Sense::drag());let resize=ui.interact(handle,key.with("resize"),egui::Sense::drag());
+ if body.dragged()||resize.dragged(){*playing=false;let d=ui.input(|i|i.pointer.delta());*region=forge_engine::drag_region(*region,[d.x/size.x.max(1.),d.y/size.y.max(1.)],pixels,resize.dragged());}
+ let r=rect(*region);let color=egui::Color32::YELLOW;painter.rect_stroke(r,0.,egui::Stroke::new(1.5,color),egui::StrokeKind::Inside);painter.rect_filled(egui::Rect::from_center_size(r.max,egui::vec2(8.,8.)).intersect(canvas),0.,color);
+ ui.label(format!("X {:.1}  Y {:.1}  W {:.1}  H {:.1} px",region[0]*pw as f32,region[1]*ph as f32,region[2]*pw as f32,region[3]*ph as f32));ui.small("Drag rectangle to move; bottom-right handle to resize. Snap to pixels, then Store clip.");
+ });
+}

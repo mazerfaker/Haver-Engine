@@ -204,3 +204,7 @@ See `docs/RELEASE_0719.md`. `RUN_STUDIO_PRO_SCENE.bat` opens the new fixture. Ke
 ## v0.7.20 — Docking, Graph & Atlas (experimental source)
 
 See `docs/RELEASE_0720.md` for controls, testing and limitations. Optional recursive docking and vertex-quad particles preserve the legacy default paths. Use `QUICK_CHECK.bat` before building, and `RUN_GPU_QUADS_SCENE.bat` / `RUN_ATLAS_SCENE.bat` for the new fixtures. No dependency changes. Keep your existing `Cargo.lock` and `target`.
+
+## v0.7.21 — Studio Refinement & Runtime Safety
+
+See `docs/RELEASE_0721.md`. New atlas rectangle editor, tab reordering, scene audio lifetime fixes and independent linked prefab overrides. Run `QUICK_CHECK.bat` and `QUICK_TEST.bat` before building. Source release, not yet compiled on Windows.
