@@ -1,0 +1,6 @@
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+JSON and TOML parse: PASS
+Rust compiler, Windows PowerShell and Windows runtime: unavailable; build not executed.
+Network probe to static.rust-lang.org: DNS resolution failed.

@@ -3,41 +3,23 @@ on: [push, workflow_dispatch]
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Check, test, build and smoke
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          function Invoke-Cargo { & cargo @args 2>&1 | Tee-Object -FilePath forge-check.log -Append; if ($LASTEXITCODE -ne 0) { throw "Cargo failed: $args" } }
-          Invoke-Cargo check --all-targets
-          Invoke-Cargo test --all-targets
-          Invoke-Cargo build --release --bins
-          Get-ChildItem examples/signal_lost/*.forge.json | ForEach-Object {
-            & target/release/forge_player.exe --smoke $_.FullName
-            if ($LASTEXITCODE -ne 0) { throw 'Smoke failed' }
-            Invoke-Cargo run --bin forge_editor -- --editor-qa $_.FullName
-            if ($LASTEXITCODE -ne 0) { throw 'Editor model QA failed' }
-          }
-      - name: Package verified binaries
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force dist/SignalLost | Out-Null
-          Copy-Item target/release/forge_editor.exe dist/ForgeEngine.exe
-          Copy-Item target/release/forge_player.exe dist/ForgePlayer.exe
-          Copy-Item target/release/forge_player.exe dist/SignalLost/ForgePlayer.exe
-          Copy-Item examples/signal_lost/*.forge.json dist/SignalLost/
-          Copy-Item examples/signal_lost/assets dist/SignalLost/ -Recurse
-          Copy-Item RUN_GAME.bat dist/SignalLost/PLAY.bat
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Build and verify portable package
+        shell: powershell
+        run: .\tools\build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7.3-Windows
-          path: dist/
+          name: ForgeEngine-v0.7.4-Windows-portable
+          path: ForgeEngine-v0.7.4-Windows-portable.zip
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Forge-build-log
           path: forge-check.log
-          if-no-files-found: ignore
+          if-no-files-found: warn

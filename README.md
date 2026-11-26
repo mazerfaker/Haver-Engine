@@ -141,3 +141,6 @@ New editable Signal Lost demo: `examples/signal_lost/project.forge.json`. Use `P
 - Editor Play mode uses the same core/health rules and displays a compact status. Campaign transitions and audio cues are standalone-only. Save As now copies referenced sound/particle/normal map paths as well as sprites. Standalone renderer removes obsolete entities after scene changes.
 - New `--editor-qa` model checks and all-sector smoke gates. See `docs/EDITOR_QA_073.md` for manual tests and limitations.
 - `python tools/validate_demo.py` validates all three sector data files and cues. No Rust toolchain is available in the authoring environment, so no compilation, unit test execution, Windows EXE or GUI QA is claimed. All new Rust features remain experimental until build verification.
+
+## v0.7.4 — Windows build and packaging hotfix
+See [Windows build guide](docs/WINDOWS_BUILD.md). The old wildcard copy of multiple campaign JSON files to one destination is replaced by explicit file copies. The local and CI pipelines now share one PowerShell script, preserve Cargo.lock, stop on failing commands, and stage portable artifacts before publication. Rust/PowerShell unavailable in authoring environment; no compiled EXE, no actual compiler log, no confirmed runtime execution. Previous gameplay and editor source preserved except version label.
