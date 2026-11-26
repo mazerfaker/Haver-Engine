@@ -1,4 +1,4 @@
-name: Forge Windows verification
+name: Haver Windows verification
 on:
   push:
     branches: [main]
@@ -45,7 +45,7 @@ jobs:
             Check-Native
             git add -- Cargo.lock
             Check-Native
-            git commit -m 'Bootstrap Cargo.lock for Forge Engine'
+            git commit -m 'Bootstrap Cargo.lock for Haver Engine'
             Check-Native
             git push origin HEAD:refs/heads/main
             Check-Native
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Forge-Cargo-lock
+          name: Haver-Cargo-lock
           path: Cargo.lock
           if-no-files-found: warn
           retention-days: 30
@@ -138,13 +138,13 @@ jobs:
         run: python tools/package_source.py
       - uses: actions/upload-artifact@v4
         with:
-          name: Forge-Windows-portable
-          path: ForgeEngine-*-Windows-portable.zip
+          name: Haver-Windows-portable
+          path: HaverEngine-*-Windows-portable.zip
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
-          name: Forge-source-and-update
+          name: Haver-source-and-update
           path: ci-packages/*.zip
           if-no-files-found: error
           retention-days: 30
@@ -160,7 +160,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Forge-build-log
+          name: Haver-build-log
           path: |
             forge-check.log
             forge-matrix.log
@@ -169,4 +169,4 @@ jobs:
             Cargo.lock
           if-no-files-found: warn
           retention-days: 30
-# Historic package: ForgeEngine-v0.7.41-Windows-portable.zip
+# Historic package: HaverEngine-v0.7.41-Windows-portable.zip

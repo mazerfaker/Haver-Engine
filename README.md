@@ -1,4 +1,6 @@
-# Forge Engine v0.7.41 — Persistent Timeline & Async Transactions
+# Haver Engine v0.7.41 — Persistent Timeline & Async Transactions
+
+Formerly Forge Engine. Same project, version history and runtime. See [GitHub CI policy](docs/GITHUB_CI.md). Internal crate, project extensions and preferences remain compatible. Windows build is not yet verified.
 
 See [release notes](docs/RELEASE_0741.md). Source candidate; Windows compilation not verified. Run QUICK_CHECK.bat / QUICK_TEST.bat.
 
@@ -108,7 +110,7 @@ Open examples/demo/project.forge.json; test GPU and fallback views, zoom/pan, se
 Native Rust / Bevy 0.16.1 / egui editor; no HTML or webview. Based on v0.1, schema 1 files load with defaults and migrate to schema 2. Keep a backup before saving.
 
 ## Windows
-Install Rust stable (rustup.rs) and Visual Studio Build Tools with Desktop development with C++. Run BUILD_WINDOWS.bat. On success run dist/ForgeEngine.exe. Open examples/demo/project.forge.json, select Player, inspect Animation, press Play, use A/D and W to jump. For native runtime: `dist\ForgePlayer.exe examples\demo\project.forge.json`. `cargo test --lib` runs model tests. GitHub Actions workflow can build on Windows. No binaries or Cargo.lock are supplied: no Rust toolchain was available to compile or test this delivery.
+Install Rust stable (rustup.rs) and Visual Studio Build Tools with Desktop development with C++. Run BUILD_WINDOWS.bat. On success run dist/HaverEngine.exe. Open examples/demo/project.forge.json, select Player, inspect Animation, press Play, use A/D and W to jump. For native runtime: `dist\HaverPlayer.exe examples\demo\project.forge.json`. `cargo test --lib` runs model tests. GitHub Actions workflow can build on Windows. No binaries or Cargo.lock are supplied: no Rust toolchain was available to compile or test this delivery.
 
 ## Added in this preview
 - Shared simulation used by editor Play and standalone Bevy sprite renderer: static/dynamic AABB collisions, vertical gravity, triggers, WASD, Lua callbacks, graph traversal. Physics is intentionally elementary; no rotated colliders, dynamic/dynamic resolution or fixed-step CCD.

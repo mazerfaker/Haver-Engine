@@ -1,6 +1,6 @@
-# Forge Engine: GitHub stabilization policy
+# Haver Engine: GitHub stabilization policy
 
-Repository: private `mazerfaker/Forge-Engine`. Baseline: v0.7.41 source snapshot. The archive tags `source-v*` reconstruct historical source releases; they are NOT proof of successful CI. No engine features are replaced by the import.
+Repository: private `mazerfaker/Haver-Engine`. Baseline: Forge Engine v0.7.41 source snapshot, rebranded as Haver Engine without resetting the version or archive history. The archive tags `source-v*` reconstruct historical source releases; they are NOT proof of successful CI. No engine features are replaced by the import.
 
 ## Build gate
 - Windows hosted runner x64 MSVC, recorded Rust version, locked dependencies, cache Cargo registry and target via rust-cache.
@@ -17,3 +17,6 @@ Repository: private `mazerfaker/Forge-Engine`. Baseline: v0.7.41 source snapshot
 5. Preserve native Rust/Bevy/egui/Rapier/Lua architecture, 2D/2.5D, Ukrainian/English localization and all existing demos. No Auto Rig or automatic animator.
 
 For each version: inspect actual CI failure -> fix the specific source -> commit -> rerun -> record status and exact commit. Do not describe an uncompiled source snapshot as a stable build. Do not claim measured performance without measurements.
+
+## Compatibility after rebranding
+The Rust crate `forge_engine`, binary targets `forge_editor`/`forge_player`, `.forge.json` documents, legacy cache names and `APPDATA/ForgeEngine` preferences remain unchanged intentionally. Portable executables are now `HaverEngine.exe` and `HaverPlayer.exe`. Historical release notes and source tags retain the original name. The `haver-rebrand-v0.7.41` tag denotes this source-only branding/CI snapshot, not a verified release.

@@ -3,6 +3,7 @@
 /.forge-package-stage/
 /ci-packages/
 /ForgeEngine-*-Windows-*.zip
+/HaverEngine-*-Windows-*.zip
 /forge-*.log
 **/__pycache__/
 *.pyc

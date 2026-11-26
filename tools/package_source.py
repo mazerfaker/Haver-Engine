@@ -21,16 +21,16 @@ def main():
     old=a.base or max(tags,key=version_tuple,default=None)
     out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
     now={f for f in files(head) if eligible(f)}
-    full=out/f'ForgeEngine-v{version}-source.zip'
+    full=out/f'HaverEngine-v{version}-source.zip'
     with zipfile.ZipFile(full,'w',zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(now):z.writestr(f'ForgeEngine-v{version}/{f}',blob(head,f))
+        for f in sorted(now):z.writestr(f'HaverEngine-v{version}/{f}',blob(head,f))
     with zipfile.ZipFile(full) as z:assert z.testzip() is None
     if old:
         prev={f for f in files(old) if eligible(f)}
         changed=[f for f in sorted(now-{'Cargo.lock'}) if f not in prev or blob(head,f)!=blob(old,f)]
         removed=sorted((prev-now)-{'Cargo.lock'})
         base_version=tomllib.loads(blob(old,'Cargo.toml').decode())['package']['version']
-        patch=out/f'ForgeEngine-v{version}-update-from-{base_version}.zip'
+        patch=out/f'HaverEngine-v{version}-update-from-{base_version}.zip'
         manifest={'base_ref':old,'base_commit':git('rev-parse',old).decode().strip(),'head_commit':head,'version':version,'preserve':['Cargo.lock','target/'],'remove_manually_after_backup':removed,'sha256':{f:hashlib.sha256(blob(head,f)).hexdigest() for f in changed}}
         with zipfile.ZipFile(patch,'w',zipfile.ZIP_DEFLATED) as z:
             for f in changed:z.writestr(f,blob(head,f))

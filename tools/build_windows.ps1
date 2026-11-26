@@ -5,7 +5,7 @@ $root = (Get-Location).Path
 $log = Join-Path $root 'forge-check.log'
 $dist = Join-Path $root 'dist'
 $stage = Join-Path $root '.forge-package-stage'
-$zipName = if ($Profile -eq 'release') { 'ForgeEngine-v0.7.41-Windows-portable.zip' } else { "ForgeEngine-v0.7.41-Windows-$Profile-portable.zip" }
+$zipName = if ($Profile -eq 'release') { 'HaverEngine-v0.7.41-Windows-portable.zip' } else { "HaverEngine-v0.7.41-Windows-$Profile-portable.zip" }
 $zip = Join-Path $root $zipName
 function Write-Log([string]$line) {
     Write-Host $line
@@ -22,7 +22,7 @@ function Run-Native([string]$program, [string[]]$arguments) {
     if ($code -ne 0) { throw "$program failed (exit $code)" }
 }
 try {
-    Set-Content -LiteralPath $log -Encoding UTF8 -Value "Forge Engine v0.7.41 | $(Get-Date -Format o) | profile=$Profile | CheckOnly=$CheckOnly"
+    Set-Content -LiteralPath $log -Encoding UTF8 -Value "Haver Engine v0.7.41 | $(Get-Date -Format o) | profile=$Profile | CheckOnly=$CheckOnly"
     if (!$CheckOnly -and (Test-Path "$dist/BUILD_OK.txt")) { Remove-Item "$dist/BUILD_OK.txt" }
     if (!$CheckOnly -and (Test-Path $zip)) { Remove-Item $zip }
     if ($env:OS -ne 'Windows_NT') { throw 'Windows required for this build script.' }
@@ -57,9 +57,9 @@ try {
     $release = Join-Path $env:CARGO_TARGET_DIR "$target/$Profile"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path "$stage/SignalLost" -Force | Out-Null
-    Copy-Item "$release/forge_editor.exe" "$stage/ForgeEngine.exe"
-    Copy-Item "$release/forge_player.exe" "$stage/ForgePlayer.exe"
-    Copy-Item "$release/forge_player.exe" "$stage/SignalLost/ForgePlayer.exe"
+    Copy-Item "$release/forge_editor.exe" "$stage/HaverEngine.exe"
+    Copy-Item "$release/forge_player.exe" "$stage/HaverPlayer.exe"
+    Copy-Item "$release/forge_player.exe" "$stage/SignalLost/HaverPlayer.exe"
     foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Copy-Item "$demo/$name" "$stage/SignalLost/$name" }
     Copy-Item "$demo/assets" "$stage/SignalLost/assets" -Recurse
     Copy-Item 'RUN_GAME.bat' "$stage/SignalLost/PLAY.bat"
@@ -74,9 +74,9 @@ try {
     Copy-Item 'examples' "$stage/examples" -Recurse
     Copy-Item 'docs' "$stage/docs" -Recurse
     # Test release player against the actual staged resources, not source paths.
-    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Run-Native "$stage/SignalLost/ForgePlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
+    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Run-Native "$stage/SignalLost/HaverPlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
     Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-sizes.json"
-    $info = [ordered]@{version='0.7.41';profile=$Profile;target=$target;editor_bytes=(Get-Item "$stage/ForgeEngine.exe").Length;player_bytes=(Get-Item "$stage/ForgePlayer.exe").Length}
+    $info = [ordered]@{version='0.7.41';profile=$Profile;target=$target;editor_bytes=(Get-Item "$stage/HaverEngine.exe").Length;player_bytes=(Get-Item "$stage/HaverPlayer.exe").Length}
     $info | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-info.json"
     Set-Content "$stage/BUILD_OK.txt" 'Compilation, unit tests, headless demo and editor QA passed. GUI launch not tested.'
     Copy-Item $log "$stage/forge-check.log"
