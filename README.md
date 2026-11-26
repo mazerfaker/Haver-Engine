@@ -1,3 +1,7 @@
+# Forge Engine v0.5 — Gameplay PRO
+
+Experimental source update. See [Gameplay PRO](docs/GAMEPLAY_PRO.md) and [platform export](docs/PLATFORM_EXPORT.md). Previous documentation below is retained for legacy features.
+
 # Forge Engine v0.4.0 — Gameplay Foundation
 
 Experimental native Rust/Bevy/egui source update based on v0.3.7. No compiled executable or verified build.
