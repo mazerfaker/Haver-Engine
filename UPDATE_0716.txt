@@ -1,0 +1,6 @@
+Forge Engine v0.7.16 update for v0.7.15.
+Back up your existing source folder, projects, and confirmed portable release first.
+Extract this update into the root of the existing Forge Engine source folder (where Cargo.toml is located), overwriting changed source files only.
+Do NOT delete Cargo.lock or target. Neither is included. The shared build script migrates only the root package version.
+Run QUICK_CHECK.bat first, then QUICK_BUILD.bat and RUN_EDITOR_DEBUG.bat. See docs/RELEASE_0716.md for the GPU tests and known limitations.
+This is experimental source; no new compiled executable is provided.

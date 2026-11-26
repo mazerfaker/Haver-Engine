@@ -11,7 +11,7 @@ def validate(file):
      for anim in animations:
          assert {'columns','rows','frames','fps','looping'} <= anim.keys(), (file.name, o['name'], 'missing animation fields')
          assert isinstance(anim['looping'], bool), (file.name, o['name'], 'invalid looping')
-     for rel in [o.get('sprite'),o.get('production',{}).get('particle_texture'),(o.get('pro',{}).get('sound') or {}).get('path')]:
+     for rel in [o.get('sprite'),o.get('production',{}).get('particle_texture'),o.get('production',{}).get('normal_map'),(o.get('pro',{}).get('sound') or {}).get('path')]:
          if not rel: continue
          path=root/rel; assert path.is_file() and path.resolve().is_relative_to(root.resolve())
          if path.suffix=='.png':

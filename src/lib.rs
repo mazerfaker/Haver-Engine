@@ -50,6 +50,7 @@ impl Project {
             if !ids.insert(o.id) || !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|x| x.is_finite()) || o.size.iter().any(|x| *x <= 0.) { return Err("Invalid object".into()); }
             if let Some(s) = &o.sprite { if !s.starts_with("assets/") || Path::new(s).components().any(|c| !matches!(c, std::path::Component::Normal(_))) { return Err("Invalid asset path".into()); } }
         }
+        for o in &p.objects {if let Some(rel)=&o.production.normal_map {if !valid_asset(rel){return Err("Invalid normal map asset path".into());}}}
         p.schema = 2;
         Ok(p)
     }
@@ -86,6 +87,8 @@ mod tests {
         let restored:Project=serde_json::from_value(value).unwrap();
         assert!(restored.objects[0].clips["Idle"].looping);
     }
+    #[test] fn gpu_sample_loads() {let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/gpu_scene/project.forge.json");let p=Project::load(&path).unwrap();assert!(p.settings.gpu_lighting);assert!(p.objects.iter().any(|o|o.pro.light.is_some()));let normal=p.objects.iter().find_map(|o|o.production.normal_map.as_ref()).unwrap();assert!(path.parent().unwrap().join(normal).is_file());assert_eq!(crate::modules::validate(&p).is_ok(),cfg!(feature="lighting"));}
+    #[test] fn legacy_gpu_defaults() {let p=Project::default();let mut v=serde_json::to_value(&p).unwrap();v["settings"].as_object_mut().unwrap().remove("gpu_lighting");v["objects"][0]["production"].as_object_mut().unwrap().remove("normal_map");let restored:Project=serde_json::from_value(v).unwrap();assert!(!restored.settings.gpu_lighting);assert!(restored.objects[0].production.normal_map.is_none());}
     #[test] fn roundtrip() { let p = Project::default(); let f = std::env::temp_dir().join(format!("{}.json", Uuid::new_v4())); p.save(&f).unwrap(); assert_eq!(p, Project::load(&f).unwrap()); fs::remove_file(f).unwrap(); }
 }
 
@@ -132,3 +135,5 @@ pub fn adaptive_widget(w:&Widget,viewport:[f32;2],design:[u32;2])->[f32;4]{let s
 pub fn animation_time(o:&Object,elapsed:f32)->f32 {if o.clip_name=="Attack" {o.pro.variables.get("forge_attack_time").copied().unwrap_or(elapsed)}else{elapsed}}
 
 pub mod combat;
+
+#[cfg(feature="lighting")] pub mod gpu_scene;

@@ -186,3 +186,6 @@ See [release notes](docs/RELEASE_0713.md). Added top docking and draggable vecto
 
 ## v0.7.15 — Stability
 See [release notes](docs/RELEASE_0715.md) and [Windows build guide](docs/WINDOWS_BUILD.md). Includes v0.7.14 level-four hotfix, explicit f32 typing at compiler-diagnosed locations, feature-specific warning cleanup, scene deserialization regression tests, active cache metrics, and UTF-8 build logs. Run CHECK_WINDOWS.bat, then BUILD_WINDOWS.bat. GPU_CHECK.bat checks the opt-in lab Rust target; actual WGSL rendering still needs a graphical run.
+
+## v0.7.16 — GPU & Editor Integration
+See [release report and Windows QA](docs/RELEASE_0716.md). Default CPU lighting remains active for legacy scenes; enable experimental GPU lighting in Gameplay PRO. `RUN_GPU_SCENE.bat` opens a small normal-map and moving-light test scene; `GPU_PARTICLE_LAB.bat` opens an isolated compute test. `QUICK_CHECK.bat`, `QUICK_BUILD.bat`, and `RUN_EDITOR_DEBUG.bat` reuse the existing source directory's Cargo cache. Keep your Cargo.lock and target. New version is uncompiled source, not a verified Windows release.

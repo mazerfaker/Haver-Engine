@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.7.15"
+version = "0.7.16"
 edition = "2024"
 default-run = "forge_editor"
 
@@ -55,4 +55,9 @@ opt-level = 1
 [[example]]
 name = "gpu_lighting_lab"
 path = "experimental/gpu_lighting_lab.rs"
+required-features = ["gpu-lab"]
+
+[[example]]
+name = "gpu_particle_lab"
+path = "experimental/gpu_particle_lab.rs"
 required-features = ["gpu-lab"]

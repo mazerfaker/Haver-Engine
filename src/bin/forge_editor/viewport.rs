@@ -11,6 +11,7 @@ pub(super) struct TextureCache {
     ready: HashMap<PathBuf,(Stamp,Handle<Image>,u64,u64)>,
  clock:u64,budget:u64, pinned:std::collections::HashSet<PathBuf>,
     pending: HashMap<PathBuf,Stamp>, failed: HashMap<PathBuf,Stamp>,
+    checks: HashMap<PathBuf,(std::time::Instant,Option<Stamp>)>,
     tx: std::sync::mpsc::SyncSender<(PathBuf,Stamp)>,
     rx: std::sync::Mutex<std::sync::mpsc::Receiver<Decoded>>,
 }
@@ -22,7 +23,7 @@ impl Default for TextureCache {
    let result=(|| -> Result<image::RgbaImage,String> {let mut reader=image::ImageReader::open(&path).map_err(|e|e.to_string())?;let mut limits=image::Limits::default();limits.max_image_width=Some(8192);limits.max_image_height=Some(8192);limits.max_alloc=Some(128*1024*1024);reader.limits(limits);reader.decode().map(|img|img.to_rgba8()).map_err(|e|e.to_string())})();
    if done.send((path,stamp,result)).is_err(){break;}
   });
-  Self{clock:0,budget:128*1024*1024,pinned:Default::default(),ready:HashMap::new(),pending:HashMap::new(),failed:HashMap::new(),tx,rx:std::sync::Mutex::new(rx)}
+  Self{clock:0,budget:128*1024*1024,pinned:Default::default(),ready:HashMap::new(),pending:HashMap::new(),failed:HashMap::new(),checks:HashMap::new(),tx,rx:std::sync::Mutex::new(rx)}
  }
 }
 impl TextureCache {
@@ -46,7 +47,7 @@ impl TextureCache {
   }
  }
  fn get(&mut self,path:&PathBuf)->Option<Handle<Image>> {
-  self.clock=self.clock.wrapping_add(1);let stamp=std::fs::metadata(path).and_then(|m|m.modified()).ok()?;
+  self.clock=self.clock.wrapping_add(1);let now=std::time::Instant::now();let check=self.checks.entry(path.clone()).or_insert_with(||(now,std::fs::metadata(path).and_then(|m|m.modified()).ok()));if now.duration_since(check.0)>=std::time::Duration::from_millis(500){*check=(now,std::fs::metadata(path).and_then(|m|m.modified()).ok());}let stamp=check.1?;
   if self.ready.get(path).map(|x|x.0)!=Some(stamp) && !self.pending.contains_key(path) && self.failed.get(path)!=Some(&stamp) {
    if self.tx.try_send((path.clone(),stamp)).is_ok(){self.pending.insert(path.clone(),stamp);}
   }
@@ -67,7 +68,7 @@ pub(super) fn sync_viewport(mut commands:Commands,e:Res<Editor>,target:Res<ViewT
  let paths:std::collections::HashSet<_>=ordered.iter().filter_map(|o|e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel))).collect();
  let new_pins:std::collections::HashSet<_>=ordered.iter().filter(|o|e.workspace.prefs.camera || e.master.game || forge_engine::spatial::visible(forge_engine::sprite_center(o,project.isometric),o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)])).filter_map(|o|e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel))).collect();
  if new_pins!=cache.pinned {cache.failed.clear();cache.pinned=new_pins;}
- let before=cache.ready.len();cache.ready.retain(|path,_|paths.contains(path));if before!=cache.ready.len(){EVICTIONS.fetch_add((before-cache.ready.len()) as u64,Ordering::Relaxed);cache.failed.clear();}cache.failed.retain(|path,_|paths.contains(path));
+ let before=cache.ready.len();cache.ready.retain(|path,_|paths.contains(path));if before!=cache.ready.len(){EVICTIONS.fetch_add((before-cache.ready.len()) as u64,Ordering::Relaxed);cache.failed.clear();}cache.failed.retain(|path,_|paths.contains(path));cache.checks.retain(|path,_|paths.contains(path));
  cache.poll(&mut images);
  USED.store(cache.ready.values().map(|v|v.2).sum(),Ordering::Relaxed);for (i,o) in ordered.iter().enumerate(){let pos=forge_engine::sprite_center(o,project.isometric);let transform=Transform::from_xyz(pos[0],pos[1],i as f32*0.01).with_rotation(Quat::from_rotation_z(o.rotation.to_radians()));let c=forge_engine::lit_color(o,project);let mut sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],c[3]),Vec2::from_array(o.size));
  let visible=e.workspace.prefs.camera || e.master.game || forge_engine::spatial::visible(pos,o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)]);if visible {if let Some(path)=e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel)) {if let Some(handle)=cache.get(&path){sprite.image=handle.clone();if let Some(img)=images.get(&handle){let uv=o.animation.uv(forge_engine::animation_time(o,time));let size=img.size().as_vec2();sprite.rect=Some(Rect::from_corners(Vec2::from_array(uv[0])*size,Vec2::from_array(uv[2])*size));}}}}
@@ -82,4 +83,9 @@ pub(super) fn preview_particles(mut commands:Commands,e:Res<Editor>,mut old:Quer
  let mut pool=old.iter_mut();let mut count=0;
  if let Some(p)=e.play.as_ref(){for o in &p.objects{for (pos,size,c) in forge_engine::particles(o,e.sim.elapsed){if count>=4096{break;}count+=1;let pos=project_point(pos,p.isometric);let sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],c[3]),Vec2::splat(size));let transform=Transform::from_xyz(pos[0],pos[1],100.);if let Some((_,mut s,mut t))=pool.next(){*s=sprite;*t=transform;}else{commands.spawn((PreviewParticle,sprite,transform));}}}}
  for (id,_,_) in pool{commands.entity(id).despawn();}
+}
+
+pub(super) fn gpu_scene_sync(e:Res<Editor>,mut draw:forge_engine::gpu_scene::GpuDraw,mut sprites:Query<(Entity,&SceneSprite,&Sprite,&Transform,&mut Visibility)>){
+ let p=e.play.as_ref().unwrap_or(&e.project);if (!p.settings.gpu_lighting||p.isometric)&&draw.idle(){return;}let elapsed=if e.play.is_some(){e.sim.elapsed}else{e.preview};let objects:HashMap<_,_>=p.objects.iter().map(|o|(o.id,o)).collect();
+ draw.sync(p,e.path.as_ref().and_then(|p|p.parent()),elapsed,sprites.iter_mut().filter_map(|(entity,id,s,t,v)|objects.get(&id.0).map(|o|(entity,*o,s,t,v))));
 }

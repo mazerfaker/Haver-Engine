@@ -1,0 +1,14 @@
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+test_missing (test_pack_assets.PackTests.test_missing) ... ok
+test_prune_and_script_guard (test_pack_assets.PackTests.test_prune_and_script_guard) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.006s
+
+OK
+
+PASS: JSON, Cargo TOML, dependency/features/profile parity, original 24 example files unchanged, GPU fixture normal-map package/prune.
+NOT RUN: Rust compiler, Rust tests, WGSL validation, GUI/GPU, benchmark, EXE.
