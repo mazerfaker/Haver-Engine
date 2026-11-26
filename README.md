@@ -1,3 +1,7 @@
+# v0.7.29 — Routing, Curve Controls & Index Cache (source candidate)
+
+See `docs/RELEASE_0729.md`. Start with QUICK_CHECK.bat and QUICK_TEST.bat. RUN_AUDIO_ROUTING_SCENE.bat tests the new routing and reverb. Rust compilation and runtime unverified.
+
 # v0.7.28 — Visual Channels & Audio Routing (source candidate)
 
 See `docs/RELEASE_0728.md`. Start with QUICK_CHECK.bat and QUICK_TEST.bat. RUN_VISUAL_CHANNELS_SCENE.bat tests the new visual tracks. Rust compilation and runtime unverified.

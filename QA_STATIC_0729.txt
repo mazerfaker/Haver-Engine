@@ -1,0 +1,91 @@
+Forge Engine 0.7.29 — STATIC QA
+
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+=== tools/test_pack_assets.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+=== tools/validate_0720.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK
+=== tools/validate_0722.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+=== tools/validate_0723.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.003s
+
+OK
+=== tools/validate_0724.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.006s
+
+OK
+=== tools/validate_0725.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+=== tools/validate_0726.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+=== tools/validate_0727.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+=== tools/validate_0728.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+=== tools/validate_0729.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+=== tools/validate_gpu_scene.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.005s
+
+OK
+=== tools/validate_studio_pro.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK
+=== tools/validate_ui_studio.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+
+PASS: 39 Python static/unit tests and 4 campaign scene validations (214 objects).
+PASS: 69 prior example files preserved byte-for-byte.
+PASS: 10 previous WGSL shaders unchanged.
+PASS: no removed base files, JSON and TOML parse, Cargo dependency/features/profile configuration unchanged.
+PASS: version migration regex covers 0.7.14–0.7.28.
+NOT RUN: Rust compiler/cargo unavailable, all Rust tests and Windows binaries, GPU execution, audio playback, FPS/RAM/VRAM measurement.

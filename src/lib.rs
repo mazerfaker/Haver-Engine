@@ -52,6 +52,7 @@ impl Project {
     pub fn validate_data(&self) -> Result<(), String> {
         let p=self;
         if p.schema != 1 && p.schema != 2 { return Err("Unsupported project schema".into()); }
+        if !p.settings.valid_audio_buses(){return Err("Invalid audio bus routing (cycle, missing parent, or invalid gain)".into());}
         let mut ids = std::collections::HashSet::new();
         for o in &p.objects {
             if !ids.insert(o.id) || !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|x| x.is_finite()) || o.size.iter().any(|x| *x <= 0.) { return Err("Invalid object".into()); }
@@ -68,6 +69,7 @@ impl Project {
         Ok(())
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
+        if !self.settings.valid_audio_buses(){return Err("Invalid audio bus routing".into());}
         fs::write(path, serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
     }
 }

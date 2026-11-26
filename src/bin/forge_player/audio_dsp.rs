@@ -6,8 +6,8 @@ use std::{path::Path,sync::{Arc,atomic::{AtomicU64,Ordering}},time::Duration,io:
 #[derive(Component,Clone)]
 pub struct DspControl(Arc<AtomicU64>);
 impl DspControl {
- fn encode(fx:WavEffects)->u64 {let q=|v:f32,lo:f32,hi:f32| (((if v.is_finite(){v.clamp(lo,hi)}else{0.})-lo)*1000.).round() as u64;q(fx.low_db,-12.,12.)|(q(fx.high_db,-12.,12.)<<16)|(q(fx.room,0.,1.)<<32)}
- fn decode(v:u64)->WavEffects {WavEffects{low_db:(v&65535) as f32/1000.-12.,high_db:((v>>16)&65535) as f32/1000.-12.,room:((v>>32)&65535) as f32/1000.}}
+ fn encode(fx:WavEffects)->u64 {let q=|v:f32,lo:f32,hi:f32| (((if v.is_finite(){v.clamp(lo,hi)}else{0.})-lo)*1000.).round() as u64;q(fx.low_db,-12.,12.)|(q(fx.high_db,-12.,12.)<<16)|(q(fx.room,0.,1.)<<32)|(q(fx.reverb,0.,1.)<<48)}
+ fn decode(v:u64)->WavEffects {WavEffects{low_db:(v&65535) as f32/1000.-12.,high_db:((v>>16)&65535) as f32/1000.-12.,room:((v>>32)&65535) as f32/1000.,reverb:((v>>48)&65535) as f32/1000.}}
  pub fn new(fx:WavEffects)->Self{Self(Arc::new(AtomicU64::new(Self::encode(fx))))}
  pub fn set(&self,fx:WavEffects){let packed=Self::encode(fx);if self.0.load(Ordering::Relaxed)!=packed{self.0.store(packed,Ordering::Relaxed);}}
  fn snapshot(&self)->u64{self.0.load(Ordering::Relaxed)}
@@ -35,4 +35,4 @@ impl Source for Decoder {fn current_frame_len(&self)->Option<usize>{None}fn chan
 impl Decodable for DspAudio {type DecoderItem=f32;type Decoder=Decoder;fn decoder(&self)->Decoder{let seen=self.control.snapshot();let tail=if !self.looping{self.rate as usize*self.channels as usize/2}else{0};Decoder{pcm:self.pcm.clone(),rate:self.rate,channels:self.channels,looping:self.looping,at:0,tail,tail_total:tail,dsp:StreamingEffects::new(self.rate,self.channels as usize,DspControl::decode(seen)).expect("validated DSP parameters"),control:self.control.clone(),seen,until_poll:0}}}
 #[cfg(test)]mod tests{use super::*;#[test]fn rejects_invalid(){assert!(parse(b"RIFF").is_err());}#[test]fn pcm_bounds(){let mut b=b"RIFF\x26\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x40\x1f\0\0\x80\x3e\0\0\x02\0\x10\0data\x02\0\0\0".to_vec();b.extend_from_slice(&100i16.to_le_bytes());let (rate,channels,r)=parse(&b).unwrap();assert_eq!((rate,channels,r.len()),(8000,1,2));b.pop();assert!(parse(&b).is_err());}}
 
-#[cfg(test)]mod live_control_tests{use super::*;#[test]fn packed_roundtrip(){let c=DspControl::new(WavEffects{low_db:-6.,high_db:8.25,room:0.75});assert_eq!(DspControl::decode(c.snapshot()),WavEffects{low_db:-6.,high_db:8.25,room:0.75});c.set(WavEffects::default());assert_eq!(DspControl::decode(c.snapshot()),WavEffects::default());}}
+#[cfg(test)]mod live_control_tests{use super::*;#[test]fn packed_roundtrip(){let c=DspControl::new(WavEffects{low_db:-6.,high_db:8.25,room:0.75,reverb:0.});assert_eq!(DspControl::decode(c.snapshot()),WavEffects{low_db:-6.,high_db:8.25,room:0.75,reverb:0.});c.set(WavEffects::default());assert_eq!(DspControl::decode(c.snapshot()),WavEffects::default());}}

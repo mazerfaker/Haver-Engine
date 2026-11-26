@@ -21,3 +21,18 @@ pub fn grid_animation(width:u32,height:u32,cell_w:u32,cell_h:u32,fps:f32)->Resul
 
 /// Import an image for an emitter, validating the runtime texture budget.
 pub fn import_particle_texture(source:&Path,root:&Path)->Result<String,String>{let mut reader=image::ImageReader::open(source).map_err(|e|e.to_string())?;let mut limits=image::Limits::default();limits.max_image_width=Some(512);limits.max_image_height=Some(512);limits.max_alloc=Some(4*1024*1024);reader.limits(limits);let img=reader.decode().map_err(|e|e.to_string())?.to_rgba8();let rel=format!("assets/particle_{}.png",uuid::Uuid::new_v4());fs::create_dir_all(root.join("assets")).map_err(|e|e.to_string())?;img.save(root.join(&rel)).map_err(|e|e.to_string())?;Ok(rel)}
+
+
+/// Multi-file import, bounded reads/decoding and exact duplicate comparison. All-or-nothing
+/// for the new destination directory; never overwrites existing assets.
+pub fn import_image_batch(paths:&[std::path::PathBuf],root:&Path)->Result<Vec<String>,String>{
+ use std::io::Read;use std::collections::HashMap;use std::hash::{Hash,Hasher};
+ if paths.is_empty()||paths.len()>128{return Err("Choose 1–128 image files".into());}
+ let base=root.canonicalize().map_err(|e|e.to_string())?;let assets=base.join("assets");fs::create_dir_all(&assets).map_err(|e|e.to_string())?;if !assets.canonicalize().map_err(|e|e.to_string())?.starts_with(&base){return Err("Assets outside project".into());}
+ let folder=format!("assets/import-{}",uuid::Uuid::new_v4());let dest=base.join(&folder);fs::create_dir(&dest).map_err(|e|e.to_string())?;
+ let result=(||->Result<Vec<String>,String>{let mut out=Vec::new();let mut total=0usize;let mut seen:HashMap<u64,Vec<String>>=HashMap::new();for path in paths{let mut raw=Vec::new();fs::File::open(path).map_err(|e|e.to_string())?.take(16*1024*1024+1).read_to_end(&mut raw).map_err(|e|e.to_string())?;total=total.saturating_add(raw.len());if raw.len()>16*1024*1024||total>128*1024*1024{return Err("Import exceeds 16 MiB/file or 128 MiB/batch".into());}let mut hasher=std::collections::hash_map::DefaultHasher::new();raw.hash(&mut hasher);let hash=hasher.finish();if seen.get(&hash).is_some_and(|v|v.iter().any(|rel|fs::read(base.join(rel)).is_ok_and(|b|b==raw))){continue;}
+ let format=image::guess_format(&raw).map_err(|e|e.to_string())?;let ext=match format{image::ImageFormat::Png=>"png",image::ImageFormat::Jpeg=>"jpg",_=>return Err("Only PNG/JPEG".into())};let mut reader=image::ImageReader::with_format(std::io::Cursor::new(&raw),format);let mut limits=image::Limits::default();limits.max_image_width=Some(4096);limits.max_image_height=Some(4096);limits.max_alloc=Some(96*1024*1024);reader.limits(limits);reader.decode().map_err(|e|e.to_string())?;
+ let rel=format!("{folder}/{:03}.{ext}",out.len());fs::write(base.join(&rel),raw).map_err(|e|e.to_string())?;seen.entry(hash).or_default().push(rel.clone());out.push(rel);}Ok(out)})();if result.is_err(){let _=fs::remove_dir_all(dest);}result
+}
+#[cfg(test)]mod batch29{use super::*;#[test]fn dedup_and_rollback(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());fs::create_dir(&root).unwrap();let source=root.join("source.png");image::RgbaImage::new(2,2).save(&source).unwrap();let paths=import_image_batch(&[source.clone(),source.clone()],&root).unwrap();assert_eq!(paths.len(),1);assert!(root.join(&paths[0]).is_file());let bad=root.join("bad.png");fs::write(&bad,b"not a PNG").unwrap();assert!(import_image_batch(&[source,bad],&root).is_err());assert_eq!(fs::read_dir(root.join("assets")).unwrap().count(),1);let _=fs::remove_dir_all(root);}}
+
