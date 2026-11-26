@@ -19,10 +19,12 @@ pub struct Object {
     #[serde(default)] pub script: String,
     #[serde(default)] pub graph: Graph,
     #[serde(default)] pub camera: bool,
+    #[serde(default)] pub clips: std::collections::BTreeMap<String,Animation>,
+    #[serde(default = "default_clip")] pub clip_name: String,
 }
 impl Object {
     pub fn new(name: &str, position: [f32; 2], size: [f32; 2], color: [u8; 4]) -> Self {
-        Self { id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false }
+        Self { id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -58,3 +60,5 @@ mod tests {
 
 mod runtime;
 pub use runtime::*;
+
+fn default_clip()->String{"Idle".into()}

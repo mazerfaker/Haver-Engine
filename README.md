@@ -16,3 +16,21 @@ Install Rust stable (rustup.rs) and Visual Studio Build Tools with Desktop devel
 
 ## Remaining work
 Compile/test on Windows; actual Bevy render-to-texture viewport; recursive hierarchy and transform inheritance; docking; proper node graph canvas; recursive asset browser and source watching; isometric grid; full localization; export pipelines. Android/iOS not provided. All functionality described is source-level implementation, not a verified running build.
+
+## v0.3 — Native viewport and animation foundation
+
+- GPU toggle: Bevy Camera2d renders ECS sprites into a resizable image, displayed in native egui. Disable GPU to use the v0.2 painter fallback. Grid and selection overlays remain egui. Image cache uses file modification timestamps.
+- Nested scene tree with cycle-safe traversal; parent links remain organizational, not inherited transforms.
+- Animation: named clips, Store clip / Load clip, atlas start frame, preview play/pause, rewind, selected-frame thumbnail. Clip selection is manual; automatic state transitions are not implemented yet.
+- Refined dark theme; existing resizable panels remain. True docking is not implemented.
+- Existing JSON schema 2 remains readable; new fields have serde defaults. Keep backups before opening newer projects in older editors.
+- No local Rust compiler was available: source is not compiled or runtime tested. Windows build and CI scripts are retained. GPU viewport is experimental.
+
+### Smoke test after building
+1. Open examples/demo/project.forge.json. Compare GPU on/off at different zoom and pan values.
+2. Select a sprite, open Animation, choose atlas dimensions and start frame, Store clip, edit and Store a second clip, then Load clip. Preview, rewind, save and reopen.
+3. Check Lua/physics/visual graph from v0.2 and verify Play/Stop does not mutate the saved scene.
+4. Create nested parent links, check tree, import PNG and edit the image externally to verify reload.
+
+### Roadmap (not implemented here)
+1. Harden native viewport and camera controls; 2. docking and editor icons; 3. animation state machine; 4. Aseprite JSON import; 5. Rapier physics; 6. graphical node editor; 7. tilemap studio; 8. lighting/shaders; 9. build manager (Windows then Android/iOS); 10. audio studio.
