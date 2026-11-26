@@ -53,7 +53,7 @@ try {
     Run-Native "$debug/forge_editor.exe" @('--editor-qa',(Join-Path $root 'examples/atlas_regions/project.forge.json'))
     Run-Native "$debug/forge_editor.exe" @('--editor-qa',(Join-Path $root 'examples/audio_routing/project.forge.json'))
     if ($CheckOnly) { Write-Log 'CHECK PASS'; exit 0 }
-    Run-Native 'cargo' @('build','--locked','--profile',$Profile,'--bins','--target',$target)
+    if ($Profile -eq 'release') { Run-Native 'cargo' @('build','--locked','--release','--bins','--target',$target) } else { Run-Native 'cargo' @('build','--locked','--profile',$Profile,'--bins','--target',$target) }
     $release = Join-Path $env:CARGO_TARGET_DIR "$target/$Profile"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path "$stage/SignalLost" -Force | Out-Null
@@ -69,6 +69,10 @@ try {
     Copy-Item 'tools/transfer_prefab.py' "$stage/tools/transfer_prefab.py"
     Copy-Item 'docs/WINDOWS_BUILD.md' "$stage/README.md"
     Copy-Item 'Cargo.lock' "$stage/Cargo.lock"
+    Copy-Item 'assets' "$stage/assets" -Recurse
+    Copy-Item 'branding' "$stage/branding" -Recurse
+    Copy-Item 'examples' "$stage/examples" -Recurse
+    Copy-Item 'docs' "$stage/docs" -Recurse
     # Test release player against the actual staged resources, not source paths.
     foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Run-Native "$stage/SignalLost/ForgePlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
     Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-sizes.json"

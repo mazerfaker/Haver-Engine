@@ -1,31 +1,161 @@
 name: Forge Windows verification
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: forge-windows-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  windows:
+  lock:
+    name: Resolve and preserve lockfile
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      revision: ${{ steps.lock.outputs.revision }}
+      toolchain: ${{ steps.lock.outputs.toolchain }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
-      - name: Check modular feature matrix
+      - name: Bootstrap only when Cargo.lock is missing
+        id: lock
+        shell: pwsh
+        env:
+          ALLOW_BOOTSTRAP: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Check-Native { if ($LASTEXITCODE -ne 0) { throw "Native command failed: $LASTEXITCODE" } }
+          if (!(Test-Path Cargo.lock)) {
+            if ($env:ALLOW_BOOTSTRAP -ne 'true') { throw 'Cargo.lock must be committed before validating this ref.' }
+            cargo generate-lockfile
+            Check-Native
+            git config user.name 'github-actions[bot]'
+            Check-Native
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            Check-Native
+            git add -- Cargo.lock
+            Check-Native
+            git commit -m 'Bootstrap Cargo.lock for Forge Engine'
+            Check-Native
+            git push origin HEAD:refs/heads/main
+            Check-Native
+          }
+          $rev = (git rev-parse HEAD).Trim()
+          Check-Native
+          $rust = (rustc --version).Split(' ')[1]
+          Check-Native
+          "revision=$rev" >> $env:GITHUB_OUTPUT
+          "toolchain=$rust" >> $env:GITHUB_OUTPUT
+          "Build source commit: $rev; Rust: $rust" >> $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Forge-Cargo-lock
+          path: Cargo.lock
+          if-no-files-found: warn
+          retention-days: 30
+  windows:
+    name: Windows x64 check, test, release and package
+    needs: lock
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_TARGET: x86_64-pc-windows-msvc
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.lock.outputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.lock.outputs.toolchain }}
+          targets: x86_64-pc-windows-msvc
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: forge-windows-msvc
+          cache-on-failure: true
+      - name: Record environment and verify committed dependency pins
+        shell: pwsh
+        run: |
+          rustc -vV
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git ls-files --error-unmatch Cargo.lock
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo fetch --locked
+          exit $LASTEXITCODE
+      - name: Python validators and executable transaction tests
+        shell: pwsh
+        run: |
+          Start-Transcript -Path forge-python.log
+          try {
+            $files = @(Get-Item tools/test_pack_assets.py) + @(Get-ChildItem tools/validate_*.py | Sort-Object Name)
+            foreach ($f in $files) {
+              python $f.FullName
+              if ($LASTEXITCODE -ne 0) { throw "Validator failed: $($f.Name)" }
+            }
+          } finally { Stop-Transcript }
+      - name: Cargo check, test, build --release, headless QA and portable package
+        shell: powershell
+        run: .\tools\build_windows.ps1
+      - name: Modular feature checks
         shell: powershell
         run: |
           Start-Transcript -Path forge-matrix.log
-          try { .\tools\qa_matrix.ps1 } finally { Stop-Transcript }
-      - name: Check isolated experimental examples
+          try { .\tools\qa_matrix.ps1 -CheckFeaturesOnly } finally { Stop-Transcript }
+      - name: Isolated experimental examples (reported separately)
+        id: labs
         continue-on-error: true
-        shell: powershell
-        run: cargo check --locked --no-default-features --features gpu-instancing-lab,audio-dsp-lab --examples --target x86_64-pc-windows-msvc
-      - name: Build and verify portable package
-        shell: powershell
-        run: .\tools\build_windows.ps1
+        shell: pwsh
+        run: |
+          cargo check --locked --no-default-features --features gpu-instancing-lab,audio-dsp-lab --examples 2>&1 | Tee-Object -FilePath forge-labs.log
+          exit $LASTEXITCODE
+      - name: Verify lockfile unchanged
+        if: always()
+        shell: pwsh
+        run: git diff --exit-code -- Cargo.lock
+      - name: Export full source ZIP and overlay update
+        shell: pwsh
+        run: python tools/package_source.py
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7.41-Windows-portable
-          path: ForgeEngine-v0.7.41-Windows-portable.zip
+          name: Forge-Windows-portable
+          path: ForgeEngine-*-Windows-portable.zip
           if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Forge-source-and-update
+          path: ci-packages/*.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Record experimental and manual validation status
+        if: always()
+        shell: pwsh
+        env:
+          LAB_OUTCOME: ${{ steps.labs.outcome }}
+        run: |
+          "Commit: ${{ needs.lock.outputs.revision }}" >> $env:GITHUB_STEP_SUMMARY
+          "Experimental examples: $env:LAB_OUTCOME" >> $env:GITHUB_STEP_SUMMARY
+          'GUI, actual GPU rendering/audio playback and hardware performance are NOT validated by this workflow.' >> $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -33,4 +163,9 @@ jobs:
           path: |
             forge-check.log
             forge-matrix.log
+            forge-python.log
+            forge-labs.log
+            Cargo.lock
           if-no-files-found: warn
+          retention-days: 30
+# Historic package: ForgeEngine-v0.7.41-Windows-portable.zip

@@ -1,0 +1,14 @@
+/target/
+/dist/
+/.forge-package-stage/
+/ci-packages/
+/ForgeEngine-*-Windows-*.zip
+/forge-*.log
+**/__pycache__/
+*.pyc
+.env
+.env.*
+*.pfx
+*.pem
+*.key
+# Cargo.lock must remain tracked.

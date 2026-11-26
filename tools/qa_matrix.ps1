@@ -1,3 +1,4 @@
+param([switch]$CheckFeaturesOnly)
 $ErrorActionPreference='Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'prepare_lock.ps1')
@@ -10,6 +11,7 @@ foreach($features in $sets){
   & cargo @argsList
   if($LASTEXITCODE -ne 0){throw "Feature check failed: $features"}
 }
+if ($CheckFeaturesOnly) { exit 0 }
 & cargo test --locked --all-targets
 if($LASTEXITCODE -ne 0){throw 'Full tests failed'}
 & cargo test --locked --no-default-features --lib
