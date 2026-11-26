@@ -71,3 +71,6 @@ pub use editor_core::*;
 
 mod asset_pipeline;
 pub use asset_pipeline::*;
+
+mod max_tools;
+pub use max_tools::*;

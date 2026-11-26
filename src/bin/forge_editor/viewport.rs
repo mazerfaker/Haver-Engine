@@ -3,7 +3,7 @@ use super::*;
 #[derive(Component)] pub(super) struct SceneCamera;
 #[derive(Component)] pub(super) struct SceneSprite(Uuid);
 #[derive(Default)] pub(super) struct TextureCache(HashMap<PathBuf,(std::time::SystemTime,Handle<Image>)>);
-pub(super) fn sync_viewport(mut commands:Commands,e:Res<Editor>,target:Res<ViewTarget>,mut images:ResMut<Assets<Image>>,mut camera:Query<(&mut Transform,&mut Projection,&mut Camera),With<SceneCamera>>,mut sprites:Query<(Entity,&SceneSprite,&mut Sprite,&mut Transform),Without<SceneCamera>>,mut cache:Local<TextureCache>){
+pub(super) fn sync_viewport(mut commands:Commands,e:Res<Editor>,target:Res<ViewTarget>,mut images:ResMut<Assets<Image>>,mut camera:Query<(&mut Transform,&mut Projection,&mut Camera),With<SceneCamera>>,mut sprites:Query<(Entity,&SceneSprite,&mut Sprite,&mut Transform),(Without<SceneCamera>,Without<GamePreviewCamera>)>,mut cache:Local<TextureCache>){
  let Ok((mut ct,mut projection,mut cam))=camera.single_mut() else{return;}; cam.is_active=e.native;
  if !e.native && !e.workspace.prefs.camera && !e.master.game{return;}
  let [w,h]=e.view_size;if let Some(img)=images.get_mut(&target.0){if img.width()!=w||img.height()!=h{img.resize(Extent3d{width:w,height:h,depth_or_array_layers:1});}}

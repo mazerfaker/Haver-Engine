@@ -1,0 +1,34 @@
+use crate::{Animation,Object,Project};
+use serde::{Serialize,Deserialize};
+use std::{collections::BTreeMap,path::Path,fs};
+use uuid::Uuid;
+#[derive(Clone,Debug,Serialize,Deserialize)]
+pub struct AssetEntry {pub id:Uuid,pub bytes:u64,pub references:Vec<String>,pub present:bool}
+#[derive(Default,Serialize,Deserialize)]
+pub struct AssetDatabase {pub entries:BTreeMap<String,AssetEntry>}
+impl AssetDatabase {
+ pub fn refresh(root:&Path,paths:&[String],active:&Project)->Result<Self,String>{
+ let file=root.join(".forge-assets.json");let mut db:Self=if file.exists(){serde_json::from_slice(&fs::read(&file).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?}else{Self::default()};
+ for entry in db.entries.values_mut(){entry.present=false;entry.references.clear();}
+ for path in paths {if !crate::valid_asset(path){continue;}let bytes=fs::metadata(root.join(path)).map_err(|e|e.to_string())?.len();let e=db.entries.entry(path.clone()).or_insert_with(||AssetEntry{id:Uuid::new_v4(),bytes,references:vec![],present:true});e.bytes=bytes;e.present=true;}
+ fn refs(db:&mut AssetDatabase,objects:&[Object],label:&str){for o in objects{if let Some(p)=&o.sprite{let e=db.entries.entry(p.clone()).or_insert_with(||AssetEntry{id:Uuid::new_v4(),bytes:0,references:vec![],present:false});e.references.push(format!("{label}: {}",o.name));}}}
+ fn walk(db:&mut AssetDatabase,root:&Path,dir:&Path)->Result<(),String>{for entry in fs::read_dir(dir).map_err(|e|e.to_string())?{let entry=entry.map_err(|e|e.to_string())?;let p=entry.path();let t=entry.file_type().map_err(|e|e.to_string())?;if t.is_dir(){if entry.file_name()!="target" && !entry.file_name().to_string_lossy().starts_with('.') {walk(db,root,&p)?;}}else if t.is_file(){let name=p.to_string_lossy();let label=p.strip_prefix(root).unwrap_or(&p).to_string_lossy();if name.ends_with(".forge.json"){if let Ok(project)=Project::load(&p){refs(db,&project.objects,&label);}}else if name.ends_with(".prefab.json"){if let Ok(v)=serde_json::from_slice::<Vec<Object>>(&fs::read(&p).map_err(|e|e.to_string())?){refs(db,&v,&label);}}}}Ok(())}
+ walk(&mut db,root,root)?;refs(&mut db,&active.objects,"Active scene (memory)");fs::write(file,serde_json::to_vec_pretty(&db).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;Ok(db)
+ }
+}
+#[derive(Deserialize)] struct Atlas{frames:Vec<Frame>,meta:Meta}
+#[derive(Deserialize)] struct Frame{frame:Bounds,duration:u32,#[serde(default)]rotated:bool,#[serde(default)]trimmed:bool}
+#[derive(Deserialize)] struct Bounds{x:u32,y:u32,w:u32,h:u32}
+#[derive(Deserialize)] struct Meta{image:String,#[serde(rename="frameTags",default)]tags:Vec<Tag>}
+#[derive(Deserialize)] struct Tag{name:String,from:usize,to:usize,direction:String}
+/// Normalize Aseprite JSON Array export to a single-row atlas, retaining tag order and per-frame timing.
+pub fn import_aseprite(json:&Path,root:&Path)->Result<Object,String>{
+ let a:Atlas=serde_json::from_slice(&fs::read(json).map_err(|e|e.to_string())?).map_err(|e|format!("Use Aseprite JSON Array: {e}"))?;
+ if a.frames.is_empty()||a.frames.len()>512{return Err("Expected 1–512 frames".into());}let first=&a.frames[0].frame;let(w,h)=(first.w,first.h);if w==0||h==0||a.frames.iter().any(|f|f.rotated||f.trimmed||f.frame.w!=w||f.frame.h!=h){return Err("Export equal-sized, untrimmed, unrotated frames".into());}
+ let image_path=Path::new(&a.meta.image);if image_path.components().count()!=1||!matches!(image_path.components().next(),Some(std::path::Component::Normal(_))){return Err("Atlas image must be beside JSON".into());}let source=image::open(json.parent().ok_or("Missing JSON folder")?.join(image_path)).map_err(|e|e.to_string())?.to_rgba8();
+ let mut clips=BTreeMap::new();let mut order=Vec::new();let tags=if a.meta.tags.is_empty(){vec![Tag{name:"Idle".into(),from:0,to:a.frames.len()-1,direction:"forward".into()}]}else{a.meta.tags};
+ for tag in tags{if tag.from>tag.to||tag.to>=a.frames.len()||clips.contains_key(&tag.name){return Err("Invalid or duplicate tag".into());}let mut indices:Vec<_>=(tag.from..=tag.to).collect();match tag.direction.as_str(){"forward"=>{},"reverse"=>indices.reverse(),"pingpong"=>{let back=indices.iter().rev().skip(1).take(indices.len().saturating_sub(2)).copied().collect::<Vec<_>>();indices.extend(back);},"pingpong_reverse"=>{indices.reverse();let back=indices.iter().rev().skip(1).take(indices.len().saturating_sub(2)).copied().collect::<Vec<_>>();indices.extend(back);},_=>return Err("Unsupported tag direction".into())};let start=order.len();for i in indices{order.push(i);if order.len()>2048{return Err("Too many expanded frames".into());}}let durations=order[start..].iter().map(|&i|a.frames[i].duration.max(1)).collect();clips.insert(tag.name,Animation{columns:1,rows:1,start:start as u32,frames:(order.len()-start) as u32,fps:10.,looping:true,durations});}
+ let columns=(8192/w).min(order.len() as u32).max(1);let rows=(order.len() as u32).div_ceil(columns);if w>8192||h.checked_mul(rows).unwrap_or(u32::MAX)>8192||u64::from(w)*u64::from(h)*u64::from(columns)*u64::from(rows)>32_000_000{return Err("Expanded atlas too large".into());}let mut dst=image::RgbaImage::new(w*columns,h*rows);for (j,&i) in order.iter().enumerate(){let b=&a.frames[i].frame;if b.x.checked_add(w).is_none_or(|x|x>source.width())||b.y.checked_add(h).is_none_or(|y|y>source.height()){return Err("Frame outside atlas".into());}let frame=image::imageops::crop_imm(&source,b.x,b.y,w,h).to_image();image::imageops::replace(&mut dst,&frame,i64::from(j as u32%columns*w),i64::from(j as u32/columns*h));}for c in clips.values_mut(){c.columns=columns;c.rows=rows;}
+ let rel=format!("assets/{}.png",Uuid::new_v4());fs::create_dir_all(root.join("assets")).map_err(|e|e.to_string())?;dst.save(root.join(&rel)).map_err(|e|e.to_string())?;let mut o=Object::new(json.file_stem().and_then(|s|s.to_str()).unwrap_or("Aseprite"),[0.,0.],[w as f32,h as f32],[255;4]);o.sprite=Some(rel);let (name,clip)=clips.first_key_value().ok_or("No tags")?;o.clip_name=name.clone();o.animation=clip.clone();o.clips=clips;Ok(o)
+}
+#[cfg(test)]mod tests{use super::*;#[test]fn timed_frames(){let a=Animation{columns:2,frames:2,durations:vec![100,300],..Default::default()};assert_eq!(a.frame(0.05),0);assert_eq!(a.frame(0.2),1);assert_eq!(a.frame(0.41),0);}}
