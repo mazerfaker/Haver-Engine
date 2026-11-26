@@ -5,6 +5,8 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Object {
     pub id: Uuid,
+    #[serde(default)] pub material: PhysicsMaterial,
+    #[serde(default)] pub tile: Option<TileCell>,
     #[serde(default)] pub motion: Motion,
     pub name: String,
     pub position: [f32; 2],
@@ -25,7 +27,7 @@ pub struct Object {
 }
 impl Object {
     pub fn new(name: &str, position: [f32; 2], size: [f32; 2], color: [u8; 4]) -> Self {
-        Self { motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
+        Self { material: PhysicsMaterial::default(), tile: None, motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -33,8 +35,8 @@ pub struct Project { pub schema: u32, pub name: String, pub objects: Vec<Object>
 impl Default for Project {
     fn default() -> Self {
         let mut player = Object::new("Player", [0., 0.], [40., 56.], [109, 176, 235, 255]);
-        player.player = true; player.layer = 2;
-        Self { schema: 2, isometric: false, name: "New Project".into(), objects: vec![Object::new("Ground", [0., -110.], [460., 32.], [80, 111, 103, 255]), Object::new("Platform", [130., -25.], [110., 20.], [100, 130, 148, 255]), player] }
+        player.player = true; player.layer = 2; player.body = Body::Dynamic;
+        let mut ground=Object::new("Ground", [0., -110.], [460., 32.], [80, 111, 103, 255]); ground.body=Body::Static; let mut platform=Object::new("Platform", [130., -25.], [110., 20.], [100, 130, 148, 255]); platform.body=Body::Static; Self { schema: 2, isometric: false, name: "New Project".into(), objects: vec![ground,platform,player] }
     }
 }
 impl Project {
@@ -74,3 +76,6 @@ pub use asset_pipeline::*;
 
 mod max_tools;
 pub use max_tools::*;
+
+mod gameplay;
+pub use gameplay::*;

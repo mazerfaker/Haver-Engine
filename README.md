@@ -1,3 +1,19 @@
+# Forge Engine v0.4.0 — Gameplay Foundation
+
+Experimental native Rust/Bevy/egui source update based on v0.3.7. No compiled executable or verified build.
+
+## New tools
+- Tilemap tab: enable Paint in scene, choose grid step, layer, Solid and optional project-relative PNG path (`assets/...`). Left click/drag in viewport; Eraser removes the matching cell. Tiles are individual scene objects, persisted by normal save and rendered in both editor and player. No atlas palette or batching yet.
+- Visual Script tab: add nodes, drag their headers, click an output then an input to toggle a link. IfRight/IfJump gate outgoing edges. Layout is session-only; links and nodes persist. Execution visits each node once per event, not a general-purpose branching language.
+- Inspector: gravity multiplier, movement speed, jump speed, bounce. Physics is the existing axis-aligned solver, not Rapier; no rotated colliders, friction or dynamic-body collision. Shared Rust raycast helper tests static AABBs; not exposed in Lua/UI yet.
+- Lua: existing update(dt), on_trigger(name), x/y/input_x/input_y plus elapsed, object_name, velocity_y, move(dx,dy), get_position(), jump(). The helpers are available before update, not script initialization.
+- Default new project now has a dynamic player and static platforms.
+
+## Validation
+Run CHECK_WINDOWS.bat and BUILD_WINDOWS.bat after installing Rust and C++ Build Tools. Existing CI workflow runs tests and builds Windows binaries. New tests cover tile replacement/erase, raycast and graph conditions. Cargo and rustc are unavailable in the authoring environment; tests and compilation were not executed. Rapier, full atlas editor, persisted graph layout, full Lua SDK, exports and full localization remain pending.
+
+## Previous documentation (v0.3.7)
+
 # Forge Engine v0.3.1 — Native Editor Refinement
 
 Experimental source build. Not compiled or launched in the packaging environment.
