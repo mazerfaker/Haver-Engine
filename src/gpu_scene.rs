@@ -23,7 +23,7 @@ impl Plugin for GpuScenePlugin {
  }
 }
 struct Visual { entity:Entity, material:Handle<SceneMaterial>, transform:Transform }
-#[derive(Resource,Default)] pub struct GpuScene { visuals:HashMap<Entity,Visual>, normals:HashMap<PathBuf,Option<Handle<Image>>>, flat:Option<Handle<Image>>, white:Option<Handle<Image>>, quad:Option<Handle<Mesh>>, light_cache:LightGrid, light_signature:Vec<(uuid::Uuid,[u32;2],u32)>, solid_cache:crate::spatial::SpatialIndex, solid_signature:Vec<(uuid::Uuid,[u32;2],[u32;2],[u32;2])>, scratch:Vec<usize> }
+#[derive(Resource,Default)] pub struct GpuScene { visuals:HashMap<Entity,Visual>, normals:HashMap<PathBuf,Option<Handle<Image>>>, flat:Option<Handle<Image>>, white:Option<Handle<Image>>, quad:Option<Handle<Mesh>>, light_cache:LightGrid, light_signature:Vec<(uuid::Uuid,[u32;2],u32)>, solid_cache:crate::spatial::SpatialIndex, solid_signature:Vec<(uuid::Uuid,[u32;2],[u32;2],[u32;2])>, scratch:Vec<usize>, alive_scratch:HashSet<Entity>, normal_scratch:HashSet<PathBuf>, solid_scratch:Vec<(uuid::Uuid,Vec2,Vec2,Vec2)> }
 #[derive(bevy::ecs::system::SystemParam)] pub struct GpuDraw<'w,'s> {
  state:ResMut<'w,GpuScene>, meshes:ResMut<'w,Assets<Mesh>>, images:ResMut<'w,Assets<Image>>, materials:ResMut<'w,Assets<SceneMaterial>>, commands:Commands<'w,'s>,
 }
@@ -37,13 +37,13 @@ fn load_normal(root:&Path,rel:&str,images:&mut Assets<Image>)->Option<Handle<Ima
 impl GpuDraw<'_,'_> {
  pub fn idle(&self)->bool {self.state.visuals.is_empty()}
  pub fn sync<'a>(&mut self,p:&Project,root:Option<&Path>,elapsed:f32,sources:impl Iterator<Item=(Entity,&'a Object,&'a Sprite,&'a Transform,Mut<'a,Visibility>)>){
-  if (!p.settings.gpu_lighting||p.isometric)&&self.state.visuals.is_empty(){if !self.state.light_signature.is_empty()||!self.state.solid_signature.is_empty(){self.state.light_signature.clear();self.state.solid_signature.clear();self.state.light_cache=Default::default();self.state.solid_cache=Default::default();self.state.scratch=Vec::new();}INDEX_NS.store(0,Ordering::Relaxed);SYNC_NS.store(0,Ordering::Relaxed);return;}
-  let sync_start=std::time::Instant::now();let mut alive=HashSet::new();let mut used_normals=HashSet::new();
+  if (!p.settings.gpu_lighting||p.isometric)&&self.state.visuals.is_empty(){if !self.state.light_signature.is_empty()||!self.state.solid_signature.is_empty(){self.state.light_signature.clear();self.state.solid_signature.clear();self.state.light_cache=Default::default();self.state.solid_cache=Default::default();self.state.scratch=Vec::new();self.state.alive_scratch=Default::default();self.state.normal_scratch=Default::default();self.state.solid_scratch=Vec::new();}INDEX_NS.store(0,Ordering::Relaxed);SYNC_NS.store(0,Ordering::Relaxed);MATERIAL_COUNT.store(0,Ordering::Relaxed);return;}
+  let sync_start=std::time::Instant::now();let mut alive=std::mem::take(&mut self.state.alive_scratch);alive.clear();let mut used_normals=std::mem::take(&mut self.state.normal_scratch);used_normals.clear();
   let enabled=p.settings.gpu_lighting && !p.isometric;
   let indexing_start=std::time::Instant::now();let lights:Vec<_>=if enabled {p.objects.iter().filter_map(|o|o.pro.light.as_ref().filter(|l|l.radius>0.).map(|l|(o,l))).collect()}else{vec![]};
   let light_key=|(o,l):&(&Object,&crate::Light)|(o.id,o.position.map(f32::to_bits),l.radius.to_bits());
   if !self.state.light_signature.iter().copied().eq(lights.iter().map(light_key)){self.state.light_cache=LightGrid::new(&lights);self.state.light_signature.clear();self.state.light_signature.extend(lights.iter().map(light_key));LIGHT_REBUILDS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}else{LIGHT_HITS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}
-  let solids:Vec<_>=if enabled {p.objects.iter().filter(|o|o.body==Body::Static && !o.camera).map(|s|{let pos=Vec2::from_array(sprite_center(s,false));let half=Vec2::from_array(s.size)*0.5;let (sn,cs)=s.rotation.to_radians().sin_cos();let half=Vec2::new(cs.abs()*half.x+sn.abs()*half.y,sn.abs()*half.x+cs.abs()*half.y);(s.id,pos,pos-half,pos+half)}).collect()}else{vec![]};
+  let mut solids=std::mem::take(&mut self.state.solid_scratch);solids.clear();if enabled {solids.extend(p.objects.iter().filter(|o|o.body==Body::Static && !o.camera).map(|s|{let pos=Vec2::from_array(sprite_center(s,false));let half=Vec2::from_array(s.size)*0.5;let (sn,cs)=s.rotation.to_radians().sin_cos();let half=Vec2::new(cs.abs()*half.x+sn.abs()*half.y,sn.abs()*half.x+cs.abs()*half.y);(s.id,pos,pos-half,pos+half)}));}
   let solid_key=|(id,pos,a,b):&(uuid::Uuid,Vec2,Vec2,Vec2)|(*id,pos.to_array().map(f32::to_bits),a.to_array().map(f32::to_bits),b.to_array().map(f32::to_bits));
   let indexed=(32..=4096).contains(&solids.len());if !self.state.solid_signature.iter().copied().eq(solids.iter().map(solid_key)){let mut solid_grid=crate::spatial::SpatialIndex::default();if indexed{for (i,(_,pos,a,b)) in solids.iter().enumerate(){solid_grid.insert_bounded(i,pos.to_array(),((*b-*a)*0.5).to_array(),LIGHT_CELL);}}self.state.solid_cache=solid_grid;self.state.solid_signature.clear();self.state.solid_signature.extend(solids.iter().map(solid_key));SOLID_REBUILDS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}else{SOLID_HITS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}let mut candidates=std::mem::take(&mut self.state.scratch);INDEX_NS.store(indexing_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
   for (entity,o,sprite,transform,mut visibility) in sources {
@@ -75,8 +75,8 @@ impl GpuDraw<'_,'_> {
    else {let material=self.materials.add(SceneMaterial{params,albedo,normal});let visual=self.commands.spawn((Mesh2d(quad),MeshMaterial2d(material.clone()),t)).id();self.state.visuals.insert(entity,Visual{entity:visual,material,transform:t});}
    if *visibility!=Visibility::Hidden{*visibility=Visibility::Hidden;}
   }
-  let obsolete:Vec<_>=self.state.visuals.keys().copied().filter(|id|!alive.contains(id)).collect();for id in obsolete{if let Some(v)=self.state.visuals.remove(&id){self.commands.entity(v.entity).despawn();}}
-  self.state.normals.retain(|p,_|used_normals.contains(p));self.state.scratch=candidates;SYNC_NS.store(sync_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
+  let commands=&mut self.commands;let materials=&mut self.materials;self.state.visuals.retain(|id,v|{if alive.contains(id){true}else{commands.entity(v.entity).despawn();materials.remove(v.material.id());false}});
+  self.state.normals.retain(|p,_|used_normals.contains(p));self.state.scratch=candidates;self.state.alive_scratch=alive;self.state.normal_scratch=used_normals;self.state.solid_scratch=solids;MATERIAL_COUNT.store(self.state.visuals.len() as u64,Ordering::Relaxed);SYNC_NS.store(sync_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
  }
 }
 
@@ -112,3 +112,7 @@ fn best_n_fixed<T,const N:usize>(items:impl Iterator<Item=(f32,T)>,n:usize)->[Op
  best
 }
 #[cfg(test)]mod fixed_ranking33{use super::*;#[test]fn matches_previous_stable_order(){let a=[(4_f32,0),(1.,1),(1.,2),(3.,3),(2.,4),(0.,5)];let fixed:Vec<_>=best_n_fixed::<_,4>(a.into_iter(),4).into_iter().flatten().collect();assert_eq!(fixed,best_n(a.into_iter(),4));}}
+
+static MATERIAL_COUNT:AtomicU64=AtomicU64::new(0);
+/// Number of owned scene-lighting materials (not total GPU allocations).
+pub fn lighting_material_count()->u64{MATERIAL_COUNT.load(Ordering::Relaxed)}

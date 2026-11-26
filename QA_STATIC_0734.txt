@@ -1,0 +1,4 @@
+Forge Engine v0.7.34 — QA
+PASS: 58 Python static/reference tests, including 4 new; 4 Signal Lost levels, 214 objects.
+PASS: 85 inherited example files and 10 WGSL files byte-identical. No previous files removed. JSON/TOML parse; no Cargo dependency changes.
+BLOCKED: cargo check: cargo: command not found. Two added Rust tests not executed. No Windows, audio, GUI or GPU runtime validation.

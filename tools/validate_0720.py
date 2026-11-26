@@ -17,5 +17,5 @@ class Fixtures(unittest.TestCase):
    assert a['start']+a['frames']<=len(r)
  def test_lock_migration(self):
   import re
-  s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.21"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.33\g<2>',old);assert n==1 and 'version = "0.7.33"' in out and 'version = "0.16.1"' in out
+  s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.21"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.34\g<2>',old);assert n==1 and 'version = "0.7.34"' in out and 'version = "0.16.1"' in out
 if __name__=='__main__':unittest.main()

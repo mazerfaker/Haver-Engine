@@ -37,3 +37,22 @@ pub const DSP_PRESETS:[(&str,WavEffects);5]=[
 
 #[cfg(test)]mod reverb29{use super::*;#[test]fn impulse_tail_stereo(){let mut dry=StreamingEffects::new(8000,2,Default::default()).unwrap();let mut wet=StreamingEffects::new(8000,2,WavEffects{reverb:0.7,..Default::default()}).unwrap();let mut a=vec![0.;8000];a[0]=0.4;let mut b=a.clone();dry.process(&mut a);wet.process(&mut b);assert!(a[1..].iter().all(|v|v.abs()<1e-6));assert!(b[2..].iter().any(|v|v.abs()>0.001));assert!(b.iter().skip(1).step_by(2).all(|v|*v==0.));}}
 
+
+/// Shared DSP after summing synchronized PCM blocks. No allocation in process_block.
+pub struct SummedBus { effects:StreamingEffects, channels:usize }
+impl SummedBus {
+ pub fn new(rate:u32,channels:usize,fx:WavEffects)->Result<Self,String>{Ok(Self{effects:StreamingEffects::new(rate,channels,fx)?,channels})}
+ pub fn set_effects(&mut self,fx:WavEffects)->Result<(),String>{self.effects.set_effects(fx)}
+ pub fn process_block(&mut self,inputs:&[(&[f32],f32)],out:&mut [f32])->Result<(),String>{
+  if inputs.len()>16||out.len()%self.channels!=0||inputs.iter().any(|(s,g)|s.len()!=out.len()||!g.is_finite()||!(0. ..=1.).contains(g)){return Err("Invalid aligned PCM blocks or gains".into());}
+  out.fill(0.);for (samples,gain) in inputs{for (dst,x) in out.iter_mut().zip(*samples){if x.is_finite(){*dst+=(*x).clamp(-1.,1.) * *gain;}}}self.effects.process(out);Ok(())
+ }
+}
+/// Offline common-bus export: aligned mono/stereo PCM16 files of identical format; shorter tracks are silent after EOF.
+pub fn mix_bus_wavs(inputs:&[Vec<u8>],fx:WavEffects)->Result<Vec<u8>,String>{
+ if inputs.is_empty()||inputs.len()>16||inputs.iter().map(Vec::len).sum::<usize>()>32*1024*1024{return Err("Choose 1–16 WAV files, total <=32 MiB".into());}
+ fn parse(b:&[u8])->Result<(u32,usize,&[u8]),String>{if b.len()<12||&b[..4]!=b"RIFF"||&b[8..12]!=b"WAVE"{return Err("Invalid WAV".into());}let(mut fmt,mut data)=(None,None);let mut pos=12;while pos+8<=b.len(){let n=u32_at(b,pos+4) as usize;let a=pos+8;let end=a.checked_add(n).ok_or("WAV overflow")?;if end>b.len(){return Err("Truncated WAV".into());}match &b[pos..pos+4]{b"fmt " if n>=16=>fmt=Some(&b[a..end]),b"data"=>data=Some(&b[a..end]),_=>{}}pos=end+(n&1);}let f=fmt.ok_or("Missing format")?;let d=data.ok_or("Missing PCM")?;let c=u16_at(f,2) as usize;let r=u32_at(f,4);if u16_at(f,0)!=1||!(1..=2).contains(&c)||u16_at(f,14)!=16||u16_at(f,12) as usize!=c*2||!(8000..=96000).contains(&r)||d.len()%(c*2)!=0{return Err("PCM16 mono/stereo 8–96 kHz required".into());}Ok((r,c,d))}
+ let parsed=inputs.iter().map(|b|parse(b)).collect::<Result<Vec<_>,_>>()?;let(rate,ch,_)=parsed[0];if parsed.iter().any(|(r,c,_)|*r!=rate||*c!=ch){return Err("All tracks must have identical sample rate and channel count".into());}let samples=parsed.iter().map(|(_,_,b)|b.len()/2).max().unwrap_or(0);let tail=if fx.reverb>0.||fx.room>0.{rate as usize*ch*2}else{0};let count=samples+tail;let mut bus=SummedBus::new(rate,ch,fx)?;let mut output=Vec::with_capacity(44+count*2);output.extend_from_slice(b"RIFF");output.extend_from_slice(&(36+count as u32*2).to_le_bytes());output.extend_from_slice(b"WAVEfmt ");output.extend_from_slice(&16u32.to_le_bytes());output.extend_from_slice(&1u16.to_le_bytes());output.extend_from_slice(&(ch as u16).to_le_bytes());output.extend_from_slice(&rate.to_le_bytes());output.extend_from_slice(&(rate*ch as u32*2).to_le_bytes());output.extend_from_slice(&(ch as u16*2).to_le_bytes());output.extend_from_slice(&16u16.to_le_bytes());output.extend_from_slice(b"data");output.extend_from_slice(&(count as u32*2).to_le_bytes());
+ let mut mixed=[0_f32;512];let mut processed=[0_f32;512];let gain=1./parsed.len() as f32;for start in (0..count).step_by(512){let n=(count-start).min(512);mixed[..n].fill(0.);for (_,_,data) in &parsed{for (i,x) in mixed[..n].iter_mut().enumerate(){let at=(start+i)*2;if at+2<=data.len(){*x+=i16::from_le_bytes([data[at],data[at+1]]) as f32/32768.*gain;}}}bus.process_block(&[(&mixed[..n],1.)],&mut processed[..n])?;for x in &processed[..n]{output.extend_from_slice(&((*x*32768.).round().clamp(-32768.,32767.) as i16).to_le_bytes());}}Ok(output)
+}
+#[cfg(test)]mod summed34{use super::*;#[test]fn sum_before_effects_and_validate(){let mut bus=SummedBus::new(8000,1,Default::default()).unwrap();let mut out=[0.;2];bus.process_block(&[(&[0.2,0.4],0.5),(&[0.4,-0.2],0.5)],&mut out).unwrap();assert!((out[0]-0.3).abs()<1e-6);assert!((out[1]-0.1).abs()<1e-6);assert!(bus.process_block(&[(&[0.],1.)],&mut out).is_err());}}

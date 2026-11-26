@@ -251,3 +251,6 @@ See [release notes and Windows checks](docs/RELEASE_0723.md). `RUN_INVENTORY_PRO
 ## v0.7.26 — Timeline & Frame Geometry
 
 New transform-key timeline, per-frame trim geometry independent of collider size, external nested prefab loader, shared docking icons and small CPU update optimizations. See `docs/RELEASE_0724.md`. Run `QUICK_CHECK.bat`, `QUICK_TEST.bat` and `RUN_FRAME_GEOMETRY_SCENE.bat`. Rust compilation and GPU runtime still require Windows validation. Hardware instancing and live DSP remain unfinished.
+
+### v0.7.34 — Timeline Clipboard & Summed DSP Tools
+See [RELEASE_0734.md](RELEASE_0734.md) for features, usage and validation limits. Source candidate; run QUICK_CHECK and QUICK_TEST before release. Existing project formats and dependency pins retained.

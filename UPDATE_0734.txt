@@ -1,0 +1,1 @@
+Forge Engine 0.7.33 -> 0.7.34: extract flat update ZIP over the v0.7.33 directory, confirming changed files. Do not delete target or Cargo.lock. QUICK_CHECK.bat migrates only the forge_engine package version in the existing lockfile; dependency pins are retained. Then QUICK_TEST.bat and QUICK_BUILD.bat. Source candidate, not a tested Windows binary.

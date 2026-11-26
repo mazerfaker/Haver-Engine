@@ -65,3 +65,24 @@ pub fn move_multi_channel(m:&mut Motion,clip:&str,axes:[bool;6],range:[f32;2],de
 #[cfg(test)]mod curve32{use super::*;#[test]fn horizontal_handles_change_timing(){assert!((bezier_ease(0.5,[0.,0.],[0.,1.])-0.89).abs()<0.04);assert_eq!(bezier_ease(0.,[1.,0.],[1.,0.]),0.);assert_eq!(bezier_ease(1.,[1.,0.],[1.,0.]),1.);}#[test]fn transactional_channels(){let k=|time|ScalarKey{time,value:1.,smooth:false,bezier:None,bezier_x:None};let mut m=Motion::default();m.property_channels.insert("Run".into(),[vec![k(1.)],vec![k(1.),k(2.)],vec![]]);let old=m.clone();assert!(move_multi_channel(&mut m,"Run",[true;6],[1.,1.],1.).is_err());assert_eq!(m,old);assert_eq!(move_multi_channel(&mut m,"Run",[true;6],[1.,1.],0.5).unwrap(),2);assert_eq!(m.property_channels["Run"][1][0].time,1.5);}}
 
 #[cfg(test)]mod overshoot33{use super::*;#[test]fn overshoot_and_endpoints(){assert!(bezier_ease(0.8,[1./3.,2./3.],[0.4,2.])>1.);assert_eq!(bezier_ease(1.,[0.3,0.7],[-1.,2.]),1.);}#[test]fn standalone_property_track(){let mut m=Motion::default();m.property_channels.insert("Idle".into(),[vec![ScalarKey{time:0.,value:7.,smooth:false,bezier:None,bezier_x:None}],vec![],vec![]]);assert_eq!(m.sample_clip_with_base("Idle",0.,0.,&Default::default(),([1.,2.],3.)),Some(([7.,2.],3.)));}}
+
+/// Clipboard times are relative to one shared origin across six lanes and events.
+#[derive(Clone,Debug,Default,PartialEq)]
+pub struct TimelineClipboard {pub tracks:[Vec<ScalarKey>;6],pub events:Vec<crate::AnimationEvent>}
+impl TimelineClipboard {
+ pub fn capture(m:&Motion,clip:&str,axes:[bool;6],range:[f32;2],events:bool)->Self{
+  let mut result=Self::default();if !range.iter().all(|v|v.is_finite()){return result;}let lo=range[0].min(range[1]);let hi=range[0].max(range[1]);
+  for i in 0..6{if !axes[i]{continue;}let bank=if i<3{&m.property_channels}else{&m.visual_channels};if let Some(ch)=bank.get(clip){result.tracks[i]=ch[i%3].iter().filter(|k|(lo..=hi).contains(&k.time)).cloned().collect();}}
+  if events{result.events=m.events.iter().filter(|e|e.clip==clip&&(lo..=hi).contains(&e.time)).cloned().collect();}
+  let origin=result.tracks.iter().flatten().map(|k|k.time).chain(result.events.iter().map(|e|e.time)).fold(f32::INFINITY,f32::min);
+  for k in result.tracks.iter_mut().flatten(){k.time-=origin;}for e in &mut result.events{e.time-=origin;}result
+ }
+ pub fn count(&self)->usize{self.tracks.iter().map(Vec::len).sum::<usize>()+self.events.len()}
+ pub fn paste(&self,m:&mut Motion,clip:&str,at:f32,event_end:f32)->Result<usize,String>{
+  if self.count()==0||!at.is_finite()||!(0. ..=3600.).contains(&at)||clip.is_empty()||clip.len()>128{return Err("Invalid clipboard, clip or playhead".into());}
+  let mut draft=m.clone();for i in 0..6{if self.tracks[i].is_empty(){continue;}let bank=if i<3{&mut draft.property_channels}else{&mut draft.visual_channels};let keys=&mut bank.entry(clip.to_owned()).or_default()[i%3];if keys.len()+self.tracks[i].len()>1024{return Err("Channel key budget exceeded".into());}for key in &self.tracks[i]{let mut k=key.clone();k.time+=at;if !k.time.is_finite()||!(0. ..=3600.).contains(&k.time)||keys.iter().any(|old|(old.time-k.time).abs()<0.0001){return Err("Key collision or bounds; nothing pasted".into());}keys.push(k);}}
+  if draft.events.len()+self.events.len()>256{return Err("Event budget exceeded".into());}for event in &self.events{let mut e=event.clone();e.clip=clip.into();e.time+=at;if !event_end.is_finite()||!e.time.is_finite()||e.time<0.||e.time>=event_end||e.name.len()>128||draft.events.iter().any(|old|old.clip==e.clip&&old.name==e.name&&(old.time-e.time).abs()<0.0001){return Err("Event collision or outside clip; nothing pasted".into());}draft.events.push(e);}
+  if !draft.valid_clip_keys(){return Err("Invalid channel data; nothing pasted".into());}*m=draft;Ok(self.count())
+ }
+}
+#[cfg(test)]mod clipboard34{use super::*;#[test]fn shared_origin_and_rollback(){let key=|time|ScalarKey{time,value:1.,smooth:false,bezier:None,bezier_x:None};let mut m=Motion::default();m.property_channels.insert("A".into(),[vec![key(1.)],vec![key(2.)],vec![]]);m.events.push(crate::AnimationEvent{clip:"A".into(),time:1.5,name:"step".into()});let c=TimelineClipboard::capture(&m,"A",[true;6],[0.,3.],true);assert_eq!(c.count(),3);assert_eq!(c.paste(&mut m,"B",4.,6.).unwrap(),3);assert_eq!(m.property_channels["B"][1][0].time,5.);assert_eq!(m.events[1].time,4.5);let old=m.clone();assert!(c.paste(&mut m,"B",4.,6.).is_err());assert_eq!(m,old);assert!(c.paste(&mut m,"C",4.,4.1).is_err());assert_eq!(m,old);}}
