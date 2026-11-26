@@ -1,0 +1,7 @@
+Forge Engine v0.7.38 QA (static only)
+Python validation: 73 PASS; packing tests: 2 PASS (75 total).
+Signal Lost: 4 levels, 214 objects PASS static checks.
+Prior example files: 91/91 byte-identical.
+Prior WGSL: 10/10 byte-identical.
+JSON and TOML parse PASS; manifest unchanged except version.
+cargo check --locked attempted: cargo: command not found. Rust tests, Windows compilation, runtime audio, rendering and real performance not verified.

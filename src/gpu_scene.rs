@@ -54,7 +54,7 @@ impl GpuDraw<'_,'_> {
    if self.state.white.is_none(){self.state.white=Some(pixel(&mut self.images,[255;4],TextureFormat::Rgba8UnormSrgb));}let white=self.state.white.as_ref().unwrap().clone();
    if self.state.flat.is_none(){self.state.flat=Some(pixel(&mut self.images,[128,128,255,255],TextureFormat::Rgba8Unorm));}let flat=self.state.flat.as_ref().unwrap().clone();
    if self.state.quad.is_none(){self.state.quad=Some(self.meshes.add(Rectangle::new(1.,1.)));}let quad=self.state.quad.as_ref().unwrap().clone();
-   let normal=if let Some((root,rel))=root.zip(o.production.normal_map.as_deref()) {
+   let normal=if lights.is_empty(){flat}else if let Some((root,rel))=root.zip(o.production.normal_map.as_deref()) {
     let key=root.join(rel);used_normals.insert(key.clone());
     // Limit resident distinct normal maps; oversized or unavailable maps use flat normal.
     if !self.state.normals.contains_key(&key)&&self.state.normals.len()<8 {let loaded=load_normal(root,rel,&mut self.images);self.state.normals.insert(key.clone(),loaded);}

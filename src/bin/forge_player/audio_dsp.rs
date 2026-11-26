@@ -21,20 +21,25 @@ impl TrackGains {
 }
 #[derive(Asset,TypePath)]
 pub struct DspAudio { pcm:Arc<[u8]>,tracks:Vec<(Arc<[u8]>,f32)>,rate:u32,channels:u16,control:DspControl,looping:bool,gains:TrackGains,cascade:Option<CascadeControl> }
-fn parse(b:&[u8])->Result<(u32,u16,std::ops::Range<usize>),String>{
+fn parse_format(b:&[u8])->Result<(u32,u16,std::ops::Range<usize>,u16,u16),String>{
  if b.len()<12||&b[..4]!=b"RIFF"||&b[8..12]!=b"WAVE"{return Err("Expected RIFF WAV".into());}
  let mut at=12;let mut fmt=None;let mut data=None;
  while at+8<=b.len(){let n=u32::from_le_bytes(b[at+4..at+8].try_into().unwrap()) as usize;let start=at+8;let end=start.checked_add(n).ok_or("WAV length overflow")?;if end>b.len(){return Err("Truncated WAV".into());}match &b[at..at+4]{b"fmt " if n>=16=>fmt=Some(&b[start..end]),b"data"=>data=Some(start..end),_=>{}}at=end+(n&1);}
  let fmt=fmt.ok_or("Missing format")?;let data=data.ok_or("Missing PCM data")?;let u16_at=|i|u16::from_le_bytes([fmt[i],fmt[i+1]]);let channels=u16_at(2);let rate=u32::from_le_bytes(fmt[4..8].try_into().unwrap());
- if u16_at(0)!=1||!(1..=2).contains(&channels)||u16_at(14)!=16||u16_at(12)!=2*channels||!(8000..=96000).contains(&rate)||data.is_empty()||data.len()%(2*channels as usize)!=0{return Err("Only nonempty mono/stereo PCM16 WAV, 8–96 kHz".into());}Ok((rate,channels,data))
+ let tag=u16_at(0);let bits=u16_at(14);let width=bits/8;
+ if !matches!((tag,bits),(1,8|16|24|32)|(3,32))||!(1..=2).contains(&channels)||u16_at(12)!=width*channels||!(8000..=96000).contains(&rate)||data.is_empty()||data.len()%(width as usize*channels as usize)!=0{return Err("Expected nonempty mono/stereo PCM8/16/24/32 or float32 WAV, 8–96 kHz".into());}Ok((rate,channels,data,tag,bits))
 }
+#[cfg(test)]fn parse(b:&[u8])->Result<(u32,u16,std::ops::Range<usize>),String>{let(r,c,d,tag,bits)=parse_format(b)?;if (tag,bits)!=(1,16){return Err("PCM16 required".into());}Ok((r,c,d))}
+/// Convert supported WAV encodings to bounded signed PCM16 once, outside playback.
+fn normalize_pcm(b:&[u8],cap:usize)->Result<(u32,u16,Arc<[u8]>),String>{let(rate,channels,range,tag,bits)=parse_format(b)?;let data=&b[range];let width=(bits/8) as usize;let size=(data.len()/width).checked_mul(2).ok_or("PCM size overflow")?;if size>cap{return Err("Normalized PCM exceeds budget".into());}if (tag,bits)==(1,16){return Ok((rate,channels,Arc::from(data)));}let mut out=Vec::with_capacity(size);for v in data.chunks_exact(width){let sample=match(tag,bits){(1,8)=>(i16::from(v[0])-128)*256,(1,24)=>i16::from_le_bytes([v[1],v[2]]),(1,32)=>i16::from_le_bytes([v[2],v[3]]),(3,32)=>{let f=f32::from_le_bytes(v.try_into().unwrap());if f.is_finite(){(f.clamp(-1.,1.)*32768.).round().clamp(-32768.,32767.) as i16}else{0}},_=>return Err("Unsupported PCM".into())};out.extend_from_slice(&sample.to_le_bytes());}Ok((rate,channels,Arc::from(out)))}
+
 impl DspAudio {
  pub fn control(&self)->DspControl{self.control.clone()}
  pub fn gains(&self)->TrackGains{self.gains.clone()}
  pub fn load(root:&Path,rel:&str,fx:WavEffects,budget:usize,looping:bool)->Result<(Self,usize),String>{
   if !forge_engine::valid_asset(rel){return Err("Invalid audio path".into());}let base=root.join("assets").canonicalize().map_err(|e|e.to_string())?;let path=root.join(rel).canonicalize().map_err(|e|e.to_string())?;if !path.starts_with(base){return Err("Audio outside assets".into());}
   let cap=budget.min(8*1024*1024);let mut raw=Vec::new();std::fs::File::open(path).map_err(|e|e.to_string())?.take(cap as u64+1).read_to_end(&mut raw).map_err(|e|e.to_string())?;if raw.len()>cap{return Err("DSP source budget exceeded".into());}
-  let (rate,channels,range)=parse(&raw)?;StreamingEffects::new(rate,channels as usize,fx)?;let size=range.len();Ok((Self{pcm:Arc::from(&raw[range]),tracks:Vec::new(),rate,channels,control:DspControl::new(fx),looping,gains:TrackGains::new(&[]),cascade:None},size))
+  let (rate,channels,pcm)=normalize_pcm(&raw,cap)?;StreamingEffects::new(rate,channels as usize,fx)?;let size=pcm.len();Ok((Self{pcm,tracks:Vec::new(),rate,channels,control:DspControl::new(fx),looping,gains:TrackGains::new(&[]),cascade:None},size))
  }
 }
 pub struct Decoder { pcm:Arc<[u8]>,tracks:Vec<(Arc<[u8]>,f32)>,length:usize,rate:u32,channels:u16,looping:bool,at:usize,tail:usize,tail_total:usize,dsp:StreamingEffects,control:DspControl,seen:u64,until_poll:u16,gains:TrackGains,gain_step:f32,cascade:Option<CascadeDecoder> }
@@ -91,3 +96,5 @@ impl DspAudio {
 
 
 #[cfg(test)]mod cascade_signal37{use super::*;#[test]fn child_then_parent_gain(){let stage=|name:&str,parent,gain:f32|CascadeStage{name:name.into(),parent,fx:DspControl::new(WavEffects::default()),gain:Arc::new(AtomicU32::new(gain.to_bits()))};let control=CascadeControl{stages:Arc::from(vec![stage("child",Some(1),0.5),stage("root",None,0.5)]),routes:Arc::from(vec![0,1])};let mut decoder=CascadeDecoder::new(&control,8000,1);let pcm:Arc<[u8]>=Arc::from(16384i16.to_le_bytes().to_vec());let tracks=vec![(pcm.clone(),1.),(pcm,1.)];assert!((decoder.sample(&tracks,0,false,false,1.)-0.375).abs()<0.00001);}}
+
+#[cfg(test)]mod formats38{use super::*;fn wav(tag:u16,bits:u16,data:&[u8])->Vec<u8>{let mut b=b"RIFF".to_vec();b.extend_from_slice(&(36+data.len() as u32+(data.len() as u32&1)).to_le_bytes());b.extend_from_slice(b"WAVEfmt ");b.extend_from_slice(&16u32.to_le_bytes());b.extend_from_slice(&tag.to_le_bytes());b.extend_from_slice(&1u16.to_le_bytes());b.extend_from_slice(&8000u32.to_le_bytes());b.extend_from_slice(&(8000*u32::from(bits/8)).to_le_bytes());b.extend_from_slice(&(bits/8).to_le_bytes());b.extend_from_slice(&bits.to_le_bytes());b.extend_from_slice(b"data");b.extend_from_slice(&(data.len() as u32).to_le_bytes());b.extend_from_slice(data);if data.len()%2!=0{b.push(0);}b}#[test]fn mixed_formats(){for (tag,bits,data) in [(1,8,vec![192]),(1,24,vec![0,0,64]),(1,32,vec![0,0,0,64]),(3,32,0.5f32.to_le_bytes().to_vec())]{let (_,_,p)=normalize_pcm(&wav(tag,bits,&data),32).unwrap();assert_eq!(&*p,&16384i16.to_le_bytes());}assert!(normalize_pcm(&wav(1,8,&[1,2]),3).is_err());}}

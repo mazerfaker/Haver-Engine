@@ -1,3 +1,7 @@
+# v0.7.38 — Onion Skin & Mixed PCM (source candidate)
+
+See `docs/RELEASE_0738.md`. Start with QUICK_CHECK.bat and QUICK_TEST.bat.
+
 # v0.7.33 — Multi-track Timeline & Bus DSP (source candidate)
 
 See RELEASE_0733.md for changes, limitations and Windows acceptance checks. Start with QUICK_CHECK.bat and QUICK_TEST.bat.

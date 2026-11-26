@@ -24,6 +24,6 @@ class Changes(unittest.TestCase):
    self.assertIn(t,settings)
  def test_metrics_and_lock(self):
   s=(ROOT/'src/bin/forge_editor/max.rs').read_text();self.assertIn('"lighting_sync_cpu_ns":sync_ns',s);self.assertIn('"gpu_frame_ms":null',s)
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.37');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
-  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.29"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';result,n=re.subn(pat,r'\g<1>0.7.37\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',result)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.38');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
+  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.29"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';result,n=re.subn(pat,r'\g<1>0.7.38\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',result)
 if __name__=='__main__':unittest.main()

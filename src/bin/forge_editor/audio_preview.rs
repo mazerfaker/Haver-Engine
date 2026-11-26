@@ -17,7 +17,7 @@ pub(super) fn effects_menu(ui:&mut egui::Ui,e:&mut Editor){ui.collapsing("Offlin
  });}
 
 pub(super) fn live_menu(ui:&mut egui::Ui,e:&mut Editor,request:&mut PreviewRequest){ui.collapsing("Live DSP preview / Аудіоефекти",|ui|{
- ui.small("Preview selected scene PCM16 WAV; loop until Stop preview. Changes are audible while playing.");
+ ui.small("Preview selected scene PCM8/16/24/32 or float32 WAV; loop until Stop preview. Changes are audible while playing.");
  ui.add(egui::Slider::new(&mut request.2.low_db,-12. ..=12.).text("Low dB"));ui.add(egui::Slider::new(&mut request.2.high_db,-12. ..=12.).text("High dB"));ui.add(egui::Slider::new(&mut request.2.room,0. ..=1.).text("Room"));ui.add(egui::Slider::new(&mut request.2.reverb,0. ..=1.).text("Reverb"));let mut gain=request.3.unwrap_or(0.5);ui.add(egui::Slider::new(&mut gain,0. ..=1.).text("Preview gain"));request.3=Some(gain);
  ui.horizontal_wrapped(|ui|{for (name,fx) in forge_engine::DSP_PRESETS{if ui.button(name).clicked(){request.2=fx;}}});
  let sound=e.project.objects.iter().find(|o|Some(o.id)==e.selected).and_then(|o|o.pro.sound.as_ref());let root=e.path.as_ref().and_then(|p|p.parent());

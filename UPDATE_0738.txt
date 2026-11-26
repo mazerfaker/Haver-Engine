@@ -1,0 +1,2 @@
+Forge Engine v0.7.38
+Extract over v0.7.37. Keep Cargo.lock and target. Run QUICK_CHECK.bat and QUICK_TEST.bat. See docs/RELEASE_0738.md.
