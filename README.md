@@ -81,3 +81,17 @@ Windows: run BUILD_WINDOWS.bat or use the included GitHub Actions workflow. No R
 - Startup offers the latest marked recovery snapshot for a saved project. Recovery opens the backup in a tab; use Save As to restore under the desired name. It may offer an old snapshot even after a clean exit. Unsaved projects and other tabs are not covered.
 - Windows build script now runs tests before release build. New unit tests cover reparenting, inherited translation and pivot math.
 - No Rust compiler or network access in authoring environment; no compilation, tests or EXE verified. Full docking, full localization, camera inset, animated colliders, curve handles, memory profiling and robust crash recovery remain outstanding.
+
+## v0.3.5 Professional Workspace
+
+- Panels menu: Scene, Inspector and Tools can be detached into movable/resizable **in-app** windows, or returned to their existing dock positions. Save layout persists window rectangles and mode flags. Full tab docking and separate OS windows are not implemented.
+- Projects: recent files, empty 2D, platformer and isometric templates; opening checks unsaved changes.
+- Inspector: right-click Transform to reset fields; Add Component enables existing camera, physics and Lua components.
+- Assets: folder selection, search, PNG/JPEG filter, thumbnail grid, double-click to instantiate, drag a thumbnail to the viewport. Existing asset scan and change tracking remain.
+- Viewport: rotation ring and angular pointer delta, existing move/scale axis handles. Camera preview uses a second Bevy render target (640x360), first Camera2D object, current scene or play state.
+- Animation: X/Y/Angle keyframe tracks and draggable playhead; existing motion inspector provides numeric key editing and sampled curve. Independent curve handles and key dragging are not yet implemented.
+- UA/EN: new workspace controls and several existing toolbar labels translated; legacy controls and diagnostics remain partly English. No complete professional SVG icon set yet.
+- Existing recovery and Windows CI retained. No successful compilation or interactive testing: cargo/rustc absent and network DNS for Rust distribution unavailable. Source only, no EXE. All listed features are source implementations, not verified runtime behavior.
+
+### Windows validation
+Run `CHECK_WINDOWS.bat` first. It logs compiler/test output to `forge-check.log`. Then run `BUILD_WINDOWS.bat` if checks pass. GitHub Actions workflow is also included for a clean Windows build.
