@@ -99,3 +99,50 @@ pub fn move_timeline_group(m:&mut Motion,clip:&str,axes:[bool;6],range:[f32;2],d
 }
 pub fn delete_timeline_events(m:&mut Motion,clip:&str,range:[f32;2])->usize{if !range.iter().all(|v|v.is_finite()){return 0;}let old=m.events.len();let(lo,hi)=(range[0].min(range[1]),range[0].max(range[1]));m.events.retain(|e|e.clip!=clip||!(lo..=hi).contains(&e.time));old-m.events.len()}
 #[cfg(test)]mod timeline35{use super::*;#[test]fn event_shift_atomic(){let mut m=Motion::default();m.events=vec![crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:0.2},crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:0.5}];let old=m.clone();assert!(move_timeline_group(&mut m,"A",[false;6],[0.1,0.3],0.3,true,1.).is_err());assert_eq!(m,old);assert_eq!(move_timeline_group(&mut m,"A",[false;6],[0.1,0.3],0.1,true,1.).unwrap(),1);assert_eq!(delete_timeline_events(&mut m,"A",[0.,0.4]),1);}}
+
+/// Scale selected scalar lanes and optional events around the start of the selected interval.
+/// A draft is committed only when every affected lane passes its collision and bounds checks.
+pub fn scale_timeline_group(m:&mut Motion,clip:&str,axes:[bool;6],range:[f32;2],factor:f32,events:bool,duration:f32)->Result<usize,String>{
+ if !range.iter().all(|v|v.is_finite())||!factor.is_finite()||!(0.1..=10.).contains(&factor)||!duration.is_finite()||duration<=0.{return Err("Invalid timeline scale".into());}
+ let lo=range[0].min(range[1]);let hi=range[0].max(range[1]);
+ if lo<0.||hi>3600.||lo==hi{return Err("Select a nonempty time range".into());}
+ let mut draft=m.clone();let mut count=0;
+ for i in 0..6{
+  if !axes[i]{continue;}
+  let bank=if i<3{&mut draft.property_channels}else{&mut draft.visual_channels};
+  if let Some(ch)=bank.get_mut(clip){
+   let keys=&mut ch[i%3];let mut changed=Vec::new();
+   for (j,k) in keys.iter_mut().enumerate(){if (lo..=hi).contains(&k.time){k.time=lo+(k.time-lo)*factor;if !k.time.is_finite()||!(0. ..=3600.).contains(&k.time){return Err("Key outside timeline bounds".into());}changed.push(j);count+=1;}}
+   for &j in &changed{if keys.iter().enumerate().any(|(n,k)|n!=j&&(k.time-keys[j].time).abs()<0.0001){return Err("Key collision; no lanes changed".into());}}
+  }
+ }
+ if events{
+  let mut changed=Vec::new();
+  for (j,e) in draft.events.iter_mut().enumerate(){if e.clip==clip&&(lo..=hi).contains(&e.time){e.time=lo+(e.time-lo)*factor;if !(0. ..duration).contains(&e.time){return Err("Event outside clip duration".into());}changed.push(j);count+=1;}}
+  for &j in &changed{let e=&draft.events[j];if draft.events.iter().enumerate().any(|(n,k)|n!=j&&k.clip==e.clip&&k.name==e.name&&(k.time-e.time).abs()<0.0001){return Err("Event collision; no lanes changed".into());}}
+ }
+ if count==0{return Err("No selected keys or events".into());}
+ if !draft.valid_clip_keys(){return Err("Invalid channel data; no lanes changed".into());}
+ *m=draft;Ok(count)
+}
+#[cfg(test)]
+mod timeline45{
+ use super::*;
+ fn k(time:f32)->ScalarKey{ScalarKey{time,value:1.,smooth:false,bezier:None,bezier_x:None}}
+ #[test]fn scale_preserves_shared_origin(){
+  let mut m=Motion::default();m.property_channels.insert("A".into(),[vec![k(1.),k(2.)],vec![k(1.5)],vec![]]);m.events.push(crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:1.5});
+  assert_eq!(scale_timeline_group(&mut m,"A",[true;6],[1.,2.],2.,true,4.).unwrap(),4);
+  assert_eq!(m.property_channels["A"][0][1].time,3.);
+  assert_eq!(m.property_channels["A"][1][0].time,2.);
+  assert_eq!(m.events[0].time,2.);
+ }
+ #[test]fn scale_collision_is_atomic(){
+  let mut m=Motion::default();m.property_channels.insert("A".into(),[vec![k(1.),k(2.),k(3.)],vec![k(1.5)],vec![]]);let old=m.clone();
+  assert!(scale_timeline_group(&mut m,"A",[true;6],[1.,2.],2.,false,4.).is_err());assert_eq!(m,old);
+  assert!(scale_timeline_group(&mut m,"A",[true;6],[1.,2.],f32::NAN,false,4.).is_err());assert_eq!(m,old);
+ }
+ #[test]fn scale_event_bounds_rollback(){
+  let mut m=Motion::default();m.property_channels.insert("A".into(),[vec![k(2.)],vec![],vec![]]);m.events.push(crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:2.});
+  let old=m.clone();assert!(scale_timeline_group(&mut m,"A",[true;6],[1.,2.],2.,true,3.).is_err());assert_eq!(m,old);
+ }
+}
