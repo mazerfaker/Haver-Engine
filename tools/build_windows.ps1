@@ -33,7 +33,7 @@ try {
     Run-Native 'cargo' @('build','--locked','--bins','--target',$target)
     $debug = Join-Path $env:CARGO_TARGET_DIR "$target/debug"
     $demo = Join-Path $root 'examples/signal_lost'
-    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json')) {
+    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) {
         $scene = Join-Path $demo $name
         if (!(Test-Path -LiteralPath $scene -PathType Leaf)) { throw "Missing $scene" }
         Run-Native "$debug/forge_player.exe" @('--smoke',$scene)
@@ -47,14 +47,14 @@ try {
     Copy-Item "$release/forge_editor.exe" "$stage/ForgeEngine.exe"
     Copy-Item "$release/forge_player.exe" "$stage/ForgePlayer.exe"
     Copy-Item "$release/forge_player.exe" "$stage/SignalLost/ForgePlayer.exe"
-    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json')) { Copy-Item "$demo/$name" "$stage/SignalLost/$name" }
+    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Copy-Item "$demo/$name" "$stage/SignalLost/$name" }
     Copy-Item "$demo/assets" "$stage/SignalLost/assets" -Recurse
     Copy-Item 'RUN_GAME.bat' "$stage/SignalLost/PLAY.bat"
     Copy-Item 'tools/PORTABLE_EDITOR.bat' "$stage/START_EDITOR.bat"
     Copy-Item 'docs/WINDOWS_BUILD.md' "$stage/README.md"
     Copy-Item 'Cargo.lock' "$stage/Cargo.lock"
     # Test release player against the actual staged resources, not source paths.
-    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json')) { Run-Native "$stage/SignalLost/ForgePlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
+    foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Run-Native "$stage/SignalLost/ForgePlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
     Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content "$stage/build-sizes.json"
     Set-Content "$stage/BUILD_OK.txt" 'Compilation, unit tests, headless demo and editor QA passed. GUI launch not tested.'
     Copy-Item $log "$stage/forge-check.log"

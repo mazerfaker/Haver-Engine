@@ -1,3 +1,7 @@
+# Forge Engine v0.7.10
+
+See [release notes](docs/RELEASE_0710.md). J attacks in the demo.
+
 # Forge Engine v0.7.8 — Modular Runtime
 
 See [changes and limitations](docs/PERFORMANCE_077.md). Run `CHECK_WINDOWS.bat` before building. For player-only build use `BUILD_PLAYER_ONLY.bat`.
