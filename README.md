@@ -1,3 +1,25 @@
+# Forge Engine v0.3.1 — Native Editor Refinement
+
+Experimental source build. Not compiled or launched in the packaging environment.
+
+## New editor tools
+- Scene search; duplicate; focus selected; safe deletion with reparenting; parent cycle prevention.
+- View menu: panel visibility, grid, collider outlines. Panels remain resizable, not freely dockable.
+- Cursor-centered zoom, adjustable snap, screen-axis constraints, isometric grid.
+- Q/E/R transform mode, Ctrl+D duplicate, F focus, Delete, Ctrl+S/Z/Y.
+- Previous/next animation frame and editor camera markers.
+- Existing v0.3 GPU viewport, fallback, runtime, Lua, graph and asset import remain in source.
+
+## Build
+Install Rust stable and Visual Studio C++ Build Tools, run BUILD_WINDOWS.bat. Run `cargo test --all-targets` first to compile and exercise the tests. No EXE included.
+
+## Limitations
+No full docking, scene tabs, true hierarchical transforms, axis-handle picking, game-camera preview or verified native rendering. Collider outlines are visual object bounds, not precise physics debugging. Partial bilingual localization. No new runtime/export functionality.
+
+## Manual QA
+Open examples/demo/project.forge.json; test GPU and fallback views, zoom/pan, search, duplicate, undo/redo, delete and reparent, snap and iso grid, animation stepping, save/reopen and Play/Stop.
+
+---
 # Forge Engine 0.2 — Tools and Runtime Preview
 Native Rust / Bevy 0.16.1 / egui editor; no HTML or webview. Based on v0.1, schema 1 files load with defaults and migrate to schema 2. Keep a backup before saving.
 
