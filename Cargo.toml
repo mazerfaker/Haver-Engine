@@ -1,12 +1,16 @@
 [package]
 name = "forge_engine"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2024"
 default-run = "forge_editor"
 
 [features]
-default = ["editor"]
-editor = ["dep:rfd", "dep:sysinfo"]
+default = ["editor", "physics-rapier", "lua", "audio", "lighting"]
+physics-rapier = ["dep:rapier2d"]
+lua = ["dep:mlua"]
+audio = ["bevy/bevy_audio", "bevy/vorbis", "bevy/wav"]
+lighting = []
+editor = ["dep:rfd", "dep:sysinfo", "physics-rapier", "lua", "audio", "lighting"]
 
 [[bin]]
 name = "forge_editor"
@@ -14,7 +18,7 @@ path = "src/bin/forge_editor.rs"
 required-features = ["editor"]
 
 [dependencies]
-bevy = { version = "=0.16.1", features = ["wav"] }
+bevy = { version = "=0.16.1", default-features = false, features = ["std", "async_executor", "multi_threaded", "bevy_asset", "bevy_color", "bevy_core_pipeline", "bevy_render", "bevy_sprite", "bevy_text", "bevy_ui", "bevy_window", "bevy_winit", "bevy_gilrs", "default_font", "png", "jpeg", "x11"] }
 bevy_egui = "=0.35.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -22,9 +26,9 @@ rfd = { version = "0.15", optional = true }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 sysinfo = { version = "0.35", optional = true }
-mlua = { version = "0.10", features = ["lua54", "vendored", "send"] }
+mlua = { version = "0.10", optional = true, features = ["lua54", "vendored", "send"] }
 
-rapier2d = "=0.22.0"
+rapier2d = { version = "=0.22.0", optional = true }
 
 [profile.release]
 lto = "thin"

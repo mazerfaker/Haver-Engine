@@ -1,4 +1,4 @@
-# Forge Engine v0.7.7 — Performance Foundation
+# Forge Engine v0.7.8 — Modular Runtime
 
 See [changes and limitations](docs/PERFORMANCE_077.md). Run `CHECK_WINDOWS.bat` before building. For player-only build use `BUILD_PLAYER_ONLY.bat`.
 
@@ -155,3 +155,6 @@ See [Windows build guide](docs/WINDOWS_BUILD.md). The old wildcard copy of multi
 
 ## v0.7.5 — Editor Polish
 Wrapped toolbars, scrollable inspector, Frame Scene (Home), selection counter, bilingual shortcut help, selection cleanup, recent-project ordering, axis reset and play-mode drag guards. Existing runtime and demo assets unchanged. Rust compilation unavailable in authoring environment; run CHECK_WINDOWS.bat before BUILD_WINDOWS.bat. See docs/EDITOR_POLISH_075.md.
+
+## v0.7.8
+See [performance report](docs/PERFORMANCE_078.md). Minimal player: BUILD_MINIMAL_PLAYER.bat.

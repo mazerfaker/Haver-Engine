@@ -19,8 +19,11 @@ impl Default for Widget {fn default()->Self{Self{text:"Button".into(),action:"ju
 impl Default for GameSettings {fn default()->Self{Self{production:Default::default(),rapier:false,ambient:1.,master:1.,music:1.,sfx:1.,widgets:vec![]}}}
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct ProComponents {pub physics:PhysicsPro,pub light:Option<Light>,pub emitter:Option<Emitter>,pub sound:Option<Sound>,pub variables:BTreeMap<String,f32>,pub graph_positions:Vec<[f32;2]>}
 /// Persistent Rapier world; topology is rebuilt only when body configuration changes.
+#[cfg(feature="physics-rapier")]
 use rapier2d::prelude::*;
+#[cfg(feature="physics-rapier")]
 #[derive(Default)] pub struct RapierWorld { bodies:RigidBodySet,colliders:ColliderSet, pipeline:PhysicsPipeline,islands:IslandManager,broad:BroadPhaseMultiSap,narrow:NarrowPhase,joints:ImpulseJointSet,multi:MultibodyJointSet,ccd:CCDSolver, ids:HashMap<Uuid,RigidBodyHandle>, signature:String, last:HashMap<Uuid,([f32;2],f32)> }
+#[cfg(feature="physics-rapier")]
 impl RapierWorld {
  pub fn step(&mut self,p:&mut Project,dt:f32,input:[f32;2],jumps:&[(Uuid,f32)]) {const SCALE:f32=100.;if dt<=0.||!dt.is_finite(){return;}
  let signature=format!("{:?}{:?}",p.objects.iter().filter(|o|o.body!=Body::None&&!o.camera).map(|o|(o.id,o.body,o.size,&o.pro.physics,&o.material)).collect::<Vec<_>>(),p.settings.production.joints);
@@ -33,8 +36,15 @@ impl RapierWorld {
  let params=IntegrationParameters{dt:dt.min(0.033),..Default::default()};self.pipeline.step(&vector![0.,-7.2],&params,&mut self.islands,&mut self.broad,&mut self.narrow,&mut self.bodies,&mut self.colliders,&mut self.joints,&mut self.multi,&mut self.ccd,None,&(),&());for o in &mut p.objects{if let Some(h)=self.ids.get(&o.id){let b=&self.bodies[*h];o.position=[b.translation().x*SCALE,b.translation().y*SCALE];o.rotation=b.rotation().angle().to_degrees();self.last.insert(o.id,(o.position,o.rotation));}}
  }
 }
+#[cfg(not(feature="physics-rapier"))]
+#[derive(Default)] pub struct RapierWorld;
+#[cfg(not(feature="physics-rapier"))]
+impl RapierWorld { pub fn step(&mut self,_p:&mut Project,_dt:f32,_input:[f32;2],_jumps:&[(Uuid,f32)]) {} }
 /// Simple radial lighting with segment occlusion by static AABBs. Sprite-centre approximation.
+#[cfg(feature="lighting")]
 pub fn lit_color(o:&Object,p:&Project)->[u8;4]{let mut rgb=[p.settings.ambient.clamp(0.,1.);3];for source in &p.objects{if let Some(l)=&source.pro.light{let d=[o.position[0]-source.position[0],o.position[1]-source.position[1]];let dist=d[0].hypot(d[1]);if dist>=l.radius||l.radius<=0.{continue;}let blocked=crate::raycast(p,source.position,d,dist).is_some_and(|(id,t)|id!=o.id&&id!=source.id&&t<dist);if blocked{continue;}let strength=(1.-dist/l.radius)*l.intensity;for i in 0..3{rgb[i]+=strength*l.color[i];}}}let mut c=o.color;for i in 0..3{c[i]=(c[i] as f32*rgb[i].clamp(0.,1.)) as u8;}c}
+#[cfg(not(feature="lighting"))]
+pub fn lit_color(o:&Object,_p:&Project)->[u8;4]{o.color}
 /// Four-neighbour bitmask atlas convention: N,E,S,W = 1,2,4,8.
 pub fn autotile(p:&mut Project,layer:i32,grid:u32){let cells:std::collections::HashSet<_>=p.objects.iter().filter_map(|o|o.tile.as_ref()).filter(|t|t.layer==layer&&t.grid==grid).map(|t|t.cell).collect();for o in &mut p.objects{if let Some(t)=&o.tile{if t.layer!=layer||t.grid!=grid{continue;}let [x,y]=t.cell;let mask=[ [x,y+1],[x+1,y],[x,y-1],[x-1,y]].iter().enumerate().fold(0,|m,(i,c)|m|((cells.contains(c) as u32)<<i));o.animation.columns=4;o.animation.rows=4;o.animation.start=mask;o.animation.frames=1;}}}
 #[cfg(test)] mod tests{use super::*;#[test]fn defaults(){let p=Project::default();assert_eq!(p.settings.ambient,1.);assert_eq!(p.objects[0].pro.physics.mass,1.);}#[test]fn mask(){let mut p=Project::default();p.objects.clear();crate::paint_tile(&mut p,[0,0],32,0,None,false);crate::paint_tile(&mut p,[1,0],32,0,None,false);autotile(&mut p,0,32);assert_eq!(p.objects[0].animation.start,2);assert_eq!(p.objects[1].animation.start,8);}}

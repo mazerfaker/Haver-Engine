@@ -94,3 +94,5 @@ pub use demo::*;
 pub mod performance;
 
 pub mod spatial;
+
+pub mod modules;
