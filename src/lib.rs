@@ -66,3 +66,5 @@ fn default_clip()->String{"Idle".into()}
 
 mod ultimate;
 pub use ultimate::*;
+mod editor_core;
+pub use editor_core::*;

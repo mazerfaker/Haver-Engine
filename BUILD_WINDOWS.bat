@@ -6,6 +6,12 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
+cargo test --all-targets
+if errorlevel 1 (
+ echo Tests or compilation failed.
+ pause
+ exit /b 1
+)
 cargo build --release --bins
 if errorlevel 1 (
  echo Build failed. See errors above.
