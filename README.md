@@ -56,3 +56,13 @@ Compile/test on Windows; actual Bevy render-to-texture viewport; recursive hiera
 
 ### Roadmap (not implemented here)
 1. Harden native viewport and camera controls; 2. docking and editor icons; 3. animation state machine; 4. Aseprite JSON import; 5. Rapier physics; 6. graphical node editor; 7. tilemap studio; 8. lighting/shaders; 9. build manager (Windows then Android/iOS); 10. audio studio.
+
+## v0.3.2 Native Editor PRO (experimental)
+- Shift-click selection, group transforms, Ctrl+C/V object copies and Ctrl+G group hierarchy.
+- Asset browser scans nested project folders every two seconds, filters image paths, shows thumbnails and reference counts, and creates objects from existing images.
+- Clickable animation frame strip; FPS estimate and object count in status bar.
+- Preferences window with configurable focus/move/rotate/scale shortcuts (session only).
+- Recovery snapshot every 30 seconds for dirty saved projects. To recover, open the sibling `project.forge.recovery.json` manually; save under the original name only after reviewing it. Original project is not overwritten by autosave.
+- Existing native Bevy viewport and runtime retained. No web stack.
+
+Not implemented: free docking, separate scene tabs, marquee selection, drag reparenting, prefab files, keyframe property curves, state machine, pivot/hitbox editing, persistent preferences, full localization and memory profiler. Grouping is organizational; inherited transforms are not implemented. No compiler available here; source changes and tests are not build-verified. Windows build via BUILD_WINDOWS.bat.
