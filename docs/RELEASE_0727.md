@@ -1,0 +1,21 @@
+# Forge Engine v0.7.27 — Live DSP & Property Channels
+
+Source candidate, based on v0.7.26. Not a compiled Windows distribution.
+
+## Implemented in source
+
+- Live PCM16 DSP: one coherent packed atomic control snapshot per voice. Decoder polls every 128 interleaved samples, updates gains/room without restarting the voice, retains filter history. Self-looping custom sources use ONCE rather than a second repeating adapter. Existing dry/unsupported audio fallback and scene budget remain. Player F8 opens the mixer: Master/Music/SFX, per-source gain, EQ and room for DSP sources already enabled when scene starts. Editor Audio > Live DSP preview: preview selected project WAV, edit parameters, apply to selected source, stop. Looping preview must be stopped explicitly.
+- Animation Studio: independent scalar tracks per clip (X/Y/Rotation), independent key times and Linear/Smooth interpolation; drag keys on a curve to change time/value, select/add/delete keys and set visible time/value range. Empty axes use base transform track, previous vector-key Bezier controls remain. Enabling scalar tracks creates/copies a base track if needed. Prefab offsets include scalar positions, not rotation. Existing runtime scope (non-physics, non-player objects) is unchanged. Fixture: RUN_PROPERTY_CHANNELS_SCENE.bat.
+- Sprite Studio: normalized logical-frame geometry canvas, move and bottom-right resize; numeric fields remain. Scene Save/Save As automatically syncs metadata for animated sprites, geometry-bearing sprites and previously exported metadata. Save errors for sidecars are reported separately from the saved scene. Byte-identical metadata is not rewritten; original textures unchanged. Not continuous autosync on each drag.
+- Prefab Composer: scrollable diagram of direct external references, labeled local parent, selectable node and offset fields. Existing validated list-based add/remove/parent/save/backup remains. No recursive graph traversal or free-positioned graph editor.
+- Lighting: fragment distance rejection before shadow queries, avoid shadow-ray loops if all blocker slots are invalid, reuse distance. Same five-sample soft-shadow algorithm and existing spatial grid. Expected less shader work for excluded fragments, not measured.
+- Editor theme: contrast and open-widget state updated centrally, stale editor version labels corrected. Not a comprehensive redesign.
+- Build: package version 0.7.27; existing lock migration includes 0.7.26. No new Cargo dependencies. Prior rendering paths and labs retained. No Auto Rig or automatic animator.
+
+## Limitations
+
+Rust/Cargo unavailable here; source has not been compiled, Rust unit tests not executed, WGSL and audio not run. Prior v0.7.17–v0.7.26 were also not confirmed compiled in this thread. GPU hardware instancing remains an isolated lab. Real-time EQ is two-band and room is early reflections/feedback, not a full reverb; effects are changed at polling boundaries (no click-free ramp guaranteed). Dry sources cannot be converted into a DSP voice mid-play; enable before scene start. Preview DSP limited to project PCM16 WAV, 8 MiB per source; existing runtime 16 voices/32 MiB PCM budget. Mixer values are runtime scene settings, not a new persistent mixer preset system. Scalar curves support linear/smooth only; prior vector tracks retain Bezier. Existing full editor redesign, free recursive prefab graph, measured CPU/GPU/RAM/VRAM optimization, and comprehensive Windows regression verification remain outstanding.
+
+## Install and verify on Windows
+
+Back up v0.7.26 and your projects. Extract update ZIP directly into the v0.7.26 directory. Keep Cargo.lock and target. The existing prepare_lock script updates only forge_engine's package version. Run QUICK_CHECK.bat, QUICK_TEST.bat, QUICK_BUILD.bat, RUN_EDITOR_DEBUG.bat. Run RUN_PROPERTY_CHANNELS_SCENE.bat, RUN_AUDIO_RUNTIME_SCENE.bat (F8; change EQ/room while walking between emitters), RUN_GPU_SCENE.bat. In editor select audio source and test Live DSP preview, drag property keys and frame geometry, save and verify atlas-state sidecar; edit a composite prefab using graph selection and existing Save changes + backup. Run CHECK_EXPERIMENTS.bat separately before integrating experimental labs. Do not treat a static test as a successful native build.

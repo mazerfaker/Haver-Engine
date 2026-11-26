@@ -1,0 +1,8 @@
+Forge Engine v0.7.27 source QA
+Python unittest: 30 validation + 2 asset packaging = 32 passed.
+Signal Lost: 4/4 static checks, 214 objects.
+Previous example files byte-identical: 61.
+Previous WGSL files byte-identical: 9/10. Only src/gpu_scene.wgsl changed.
+JSON/TOML parsing: PASS. Cargo config equal except package version: PASS.
+Cargo.lock/target excluded from both archives. Existing lock migration covers v0.7.26.
+Rust compilation, Rust unit tests, WGSL execution, Windows editor/player, audio and FPS/RAM/VRAM: NOT RUN. Rust/Cargo unavailable.

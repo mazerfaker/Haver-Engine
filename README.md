@@ -1,3 +1,7 @@
+# v0.7.27 — Live DSP & Property Channels (source candidate)
+
+See `docs/RELEASE_0727.md` for changes, limitations and Windows validation.
+
 # Forge Engine v0.7.26 — Studio Refinement & Optional DSP
 
 See [release notes](docs/RELEASE_0726.md). Run QUICK_CHECK.bat and QUICK_TEST.bat before release. GPU instancing remains an opt-in lab: CHECK_EXPERIMENTS.bat. RUN_AUDIO_RUNTIME_SCENE.bat tests optional PCM16 playback DSP. Source only; Rust and GPU/audio execution not verified.
