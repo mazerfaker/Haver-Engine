@@ -12,3 +12,5 @@ foreach($features in $sets){
 if($LASTEXITCODE -ne 0){throw 'Full tests failed'}
 & cargo test --no-default-features --lib
 if($LASTEXITCODE -ne 0){throw 'Minimal tests failed'}
+& cargo check --no-default-features --features gpu-lab --example gpu_lighting_lab
+if($LASTEXITCODE -ne 0){throw 'GPU lab compilation failed'}

@@ -172,3 +172,6 @@ See [Engine Refinement and limitations](docs/PERFORMANCE_079.md). Run QA_MATRIX.
 
 ## v0.7.12
 See [release notes](docs/RELEASE_0712.md). Experimental source; no compiled EXE.
+
+## v0.7.13 — Professional Editor & Engine
+See [release notes](docs/RELEASE_0713.md). Added top docking and draggable vector headers, distance-based SFX attenuation, named HUD groups, CPU viewport culling and optional GPU lighting lab (`GPU_LIGHTING_LAB.bat`). Source-only, compilation unverified. Auto Rig excluded.

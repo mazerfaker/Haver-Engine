@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.7.12"
+version = "0.7.13"
 edition = "2024"
 default-run = "forge_editor"
 
@@ -10,6 +10,7 @@ physics-rapier = ["dep:rapier2d"]
 lua = ["dep:mlua"]
 audio = ["bevy/bevy_audio", "bevy/vorbis", "bevy/wav"]
 lighting = []
+gpu-lab = ["lighting"]
 editor = ["dep:rfd", "dep:sysinfo", "physics-rapier", "lua", "audio", "lighting"]
 
 [[bin]]
@@ -50,3 +51,8 @@ lto = "fat"
 inherits = "dev"
 opt-level = 1
 
+
+[[example]]
+name = "gpu_lighting_lab"
+path = "experimental/gpu_lighting_lab.rs"
+required-features = ["gpu-lab"]
