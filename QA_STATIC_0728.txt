@@ -1,0 +1,80 @@
+==== tools/test_pack_assets.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.005s
+
+OK
+==== tools/validate_0720.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.006s
+
+OK
+==== tools/validate_0722.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+==== tools/validate_0723.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+==== tools/validate_0724.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.007s
+
+OK
+==== tools/validate_0725.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+==== tools/validate_0726.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.006s
+
+OK
+==== tools/validate_0727.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+==== tools/validate_0728.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+==== tools/validate_demo.py
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+==== tools/validate_gpu_scene.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+==== tools/validate_studio_pro.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+==== tools/validate_ui_studio.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+35 Python tests passed; four Signal Lost level resource validators passed.
+Rust compiler and Cargo not present: Rust tests, Windows build, GPU and audio execution NOT VERIFIED.
+Archive and compatibility static checks: old examples 65/65 byte-identical; WGSL 10/10 byte-identical; Cargo manifest unchanged except root version; all JSON/TOML parse; no removed files; patch overlay matches source.

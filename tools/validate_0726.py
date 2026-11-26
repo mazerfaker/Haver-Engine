@@ -15,5 +15,5 @@ class Checks(unittest.TestCase):
   ui=(ROOT/'src/bin/forge_editor/ultimate.rs').read_text();self.assertIn('Save changes + backup',ui);self.assertIn('Open composition',ui)
  def test_shader_and_lock(self):
   w=(ROOT/'src/gpu_scene.wgsl').read_text();self.assertIn('select(1u,5u',w);self.assertIn('vec2<f32>(-1e20)',w);self.assertIn('hit=true;break;',w)
-  p=tomllib.loads((ROOT/'Cargo.toml').read_text());self.assertEqual(p['package']['version'],'0.7.27');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);self.assertRegex('[[package]]\nname = "forge_engine"\nversion = "0.7.25"',pat)
+  p=tomllib.loads((ROOT/'Cargo.toml').read_text());self.assertEqual(p['package']['version'],'0.7.28');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);self.assertRegex('[[package]]\nname = "forge_engine"\nversion = "0.7.25"',pat)
 if __name__=='__main__':unittest.main()

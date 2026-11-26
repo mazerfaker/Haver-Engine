@@ -43,6 +43,7 @@ impl GpuDraw<'_,'_> {
   let lights:Vec<_>=if enabled {p.objects.iter().filter_map(|o|o.pro.light.as_ref().filter(|l|l.radius>0.).map(|l|(o,l))).collect()}else{vec![]};
   let light_grid=LightGrid::new(&lights);
   let solids:Vec<_>=if enabled {p.objects.iter().filter(|o|o.body==Body::Static && !o.camera).map(|s|{let pos=Vec2::from_array(sprite_center(s,false));let half=Vec2::from_array(s.size)*0.5;let (sn,cs)=s.rotation.to_radians().sin_cos();let half=Vec2::new(cs.abs()*half.x+sn.abs()*half.y,sn.abs()*half.x+cs.abs()*half.y);(s.id,pos,pos-half,pos+half)}).collect()}else{vec![]};
+  let mut solid_grid=crate::spatial::SpatialIndex::default();let indexed=(32..=4096).contains(&solids.len());if indexed{for (i,(_,pos,a,b)) in solids.iter().enumerate(){solid_grid.insert_bounded(i,pos.to_array(),((*b-*a)*0.5).to_array(),LIGHT_CELL);}}let mut candidates=Vec::new();
   for (entity,o,sprite,transform,mut visibility) in sources {
    // No texture substitution until original image is ready. CPU fallback remains visible.
    let ready=o.sprite.is_none()||self.images.get(&sprite.image).is_some();
@@ -60,11 +61,11 @@ impl GpuDraw<'_,'_> {
    let albedo=if o.sprite.is_some(){sprite.image.clone()}else{white};
    let uv=if o.sprite.is_some(){o.animation.uv(crate::animation_time(o,elapsed))}else{[[0.,0.],[1.,0.],[1.,1.],[0.,1.]]};
    let (center,frame_size)=crate::sprite_frame_geometry(o,false,crate::animation_time(o,elapsed));let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
-   let mut params=LightParams{tint:Vec4::from_array(o.color.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
+   let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,crate::animation_time(o,elapsed),tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
    let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
    let relevant=best_n(light_grid.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
-    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let blocks=best_n(solids.iter().copied().filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
+    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&solid_grid.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
     for (i,(_,b)) in blocks.into_iter().enumerate(){params.blockers[li*4+i]=b;}
    }
    let mut t=*transform;t.translation.x=center.x;t.translation.y=center.y;t.scale=Vec3::new(frame_size[0],frame_size[1],1.);

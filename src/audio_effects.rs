@@ -1,4 +1,4 @@
-//! Offline PCM16 WAV processing. No realtime DSP or external codecs.
+//! Offline PCM16 WAV processing and streaming DSP.
 use std::{fs,path::Path};
 #[derive(Clone,Copy,Debug,PartialEq,serde::Serialize,serde::Deserialize)] #[serde(default)] pub struct WavEffects{pub low_db:f32,pub high_db:f32,pub room:f32}
 impl Default for WavEffects{fn default()->Self{Self{low_db:0.,high_db:0.,room:0.}}}
@@ -17,10 +17,19 @@ pub fn render_wav_effects(source:&Path,root:&Path,fx:WavEffects)->Result<String,
 
 /// Stateful streaming DSP core. Allocate once at construction; process arbitrary interleaved blocks
 /// with the same history. This is not yet attached to Bevy's audio callback.
-pub struct StreamingEffects{channels:usize,coeff:f32,low:[f32;2],history:Vec<f32>,cursor:usize,channel:usize,taps:[usize;3],gain_low:f32,gain_high:f32,room:f32}
+pub struct StreamingEffects{channels:usize,coeff:f32,low:[f32;2],history:Vec<f32>,cursor:usize,channel:usize,taps:[usize;3],gain_low:f32,gain_high:f32,room:f32,target:[f32;3],smoothing:f32}
 impl StreamingEffects{
- pub fn new(rate:u32,channels:usize,fx:WavEffects)->Result<Self,String>{if !(8000..=96000).contains(&rate)||!(1..=2).contains(&channels){return Err("Unsupported DSP format".into());}let taps=[37,73,113].map(|ms|rate as usize*ms/1000*channels);let mut s=Self{channels,coeff:1.-(-std::f32::consts::TAU*1000./rate as f32).exp(),low:[0.;2],history:vec![0.;taps[2]+channels],cursor:0,channel:0,taps,gain_low:1.,gain_high:1.,room:0.};s.set_effects(fx)?;Ok(s)}
- pub fn set_effects(&mut self,fx:WavEffects)->Result<(),String>{if ![fx.low_db,fx.high_db,fx.room].iter().all(|v|v.is_finite()){return Err("Invalid DSP settings".into());}self.gain_low=10_f32.powf(fx.low_db.clamp(-12.,12.)/20.);self.gain_high=10_f32.powf(fx.high_db.clamp(-12.,12.)/20.);self.room=fx.room.clamp(0.,1.);Ok(())}
- pub fn process(&mut self,samples:&mut [f32]){let n=self.history.len();for x in samples{let input=if x.is_finite(){*x}else{0.};let c=self.channel;self.low[c]+=self.coeff*(input-self.low[c]);let dry=if self.gain_low==1.&&self.gain_high==1.{input}else{self.gain_low*self.low[c]+self.gain_high*(input-self.low[c])};let mut out=dry;for (delay,gain) in self.taps.into_iter().zip([0.24,0.15,0.09]){out+=self.room*gain*self.history[(self.cursor+n-delay)%n];}self.history[self.cursor]=dry+self.room*0.35*self.history[(self.cursor+n-self.taps[2])%n];self.cursor=(self.cursor+1)%n;self.channel=(c+1)%self.channels;*x=out.clamp(-1.,1.);}}
+ pub fn new(rate:u32,channels:usize,fx:WavEffects)->Result<Self,String>{if !(8000..=96000).contains(&rate)||!(1..=2).contains(&channels){return Err("Unsupported DSP format".into());}let taps=[37,73,113].map(|ms|rate as usize*ms/1000*channels);let mut s=Self{channels,coeff:1.-(-std::f32::consts::TAU*1000./rate as f32).exp(),low:[0.;2],history:vec![0.;taps[2]+channels],cursor:0,channel:0,taps,gain_low:1.,gain_high:1.,room:0.,target:[1.,1.,0.],smoothing:1.-(-1./(rate as f32*0.020)).exp()};s.set_effects(fx)?;[s.gain_low,s.gain_high,s.room]=s.target;Ok(s)}
+ pub fn set_effects(&mut self,fx:WavEffects)->Result<(),String>{if ![fx.low_db,fx.high_db,fx.room].iter().all(|v|v.is_finite()){return Err("Invalid DSP settings".into());}self.target=[10_f32.powf(fx.low_db.clamp(-12.,12.)/20.),10_f32.powf(fx.high_db.clamp(-12.,12.)/20.),fx.room.clamp(0.,1.)];Ok(())}
+ pub fn process(&mut self,samples:&mut [f32]){let n=self.history.len();for x in samples{let input=if x.is_finite(){*x}else{0.};let c=self.channel;if c==0{self.gain_low+=(self.target[0]-self.gain_low)*self.smoothing;self.gain_high+=(self.target[1]-self.gain_high)*self.smoothing;self.room+=(self.target[2]-self.room)*self.smoothing;}self.low[c]+=self.coeff*(input-self.low[c]);let dry=if self.gain_low==1.&&self.gain_high==1.{input}else{self.gain_low*self.low[c]+self.gain_high*(input-self.low[c])};let mut out=dry;for (delay,gain) in self.taps.into_iter().zip([0.24,0.15,0.09]){out+=self.room*gain*self.history[(self.cursor+n-delay)%n];}self.history[self.cursor]=dry+self.room*0.35*self.history[(self.cursor+n-self.taps[2])%n];self.cursor=(self.cursor+1)%n;self.channel=(c+1)%self.channels;*x=out.clamp(-1.,1.);}}
 }
 #[cfg(test)]mod streaming_tests{use super::*;#[test]fn chunk_continuity_and_stereo(){let fx=WavEffects{low_db:2.,high_db:-1.,room:0.7};let mut a=vec![0.;2400];a[0]=0.5;let mut b=a.clone();let mut one=StreamingEffects::new(8000,2,fx).unwrap();let mut split=StreamingEffects::new(8000,2,fx).unwrap();one.process(&mut a);for c in b.chunks_mut(137){split.process(c);}assert_eq!(a,b);assert!(a.iter().skip(1).step_by(2).all(|v|*v==0.));assert!(a[592].abs()>0.001);}}
+
+/// Built-in source presets; existing Master/Music/SFX routing stays intact.
+pub const DSP_PRESETS:[(&str,WavEffects);5]=[
+ ("Flat",WavEffects{low_db:0.,high_db:0.,room:0.}),
+ ("Warm",WavEffects{low_db:4.,high_db:-3.,room:0.1}),
+ ("Bright",WavEffects{low_db:-2.,high_db:5.,room:0.05}),
+ ("Small room",WavEffects{low_db:0.,high_db:-1.,room:0.35}),
+ ("Large room",WavEffects{low_db:1.,high_db:-4.,room:0.85})];
+#[cfg(test)]mod smoothing_tests{use super::*;#[test]fn smooth_and_stereo(){let mut dsp=StreamingEffects::new(8000,2,Default::default()).unwrap();dsp.set_effects(DSP_PRESETS[1].1).unwrap();let mut a=[0.25;2];dsp.process(&mut a);assert_eq!(a[0],a[1]);assert!((a[0]-0.25).abs()<0.01);assert!(dsp.gain_low>1.&&dsp.gain_low<dsp.target[0]);let mut b=vec![0.;16000];dsp.process(&mut b);assert!((dsp.gain_low-dsp.target[0]).abs()<0.001);}}
