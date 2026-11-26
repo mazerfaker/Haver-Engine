@@ -23,10 +23,13 @@ pub fn sprite_center(o:&Object,iso:bool)->[f32;2]{let p=crate::project_point(o.p
 
 /// Visual bounds of an animation frame, independent of logical object/physics bounds.
 pub fn sprite_frame_geometry(o:&Object,iso:bool,time:f32)->([f32;2],[f32;2]) {
- let visual=sprite_visual_channels(o,time);let size=[o.size[0]*visual[0],o.size[1]*visual[1]];let p=crate::project_point(o.position,iso);let pivot=rotate([-o.motion.pivot[0]*size[0],-o.motion.pivot[1]*size[1]],o.rotation);let center=[p[0]+pivot[0],p[1]+pivot[1]];
+ sprite_frame_geometry_at(o,iso,time,o.position,o.rotation)
+}
+pub fn sprite_frame_geometry_at(o:&Object,iso:bool,time:f32,position:[f32;2],rotation:f32)->([f32;2],[f32;2]) {
+ let visual=sprite_visual_channels(o,time);let size=[o.size[0]*visual[0],o.size[1]*visual[1]];let p=crate::project_point(position,iso);let pivot=rotate([-o.motion.pivot[0]*size[0],-o.motion.pivot[1]*size[1]],rotation);let center=[p[0]+pivot[0],p[1]+pivot[1]];
  let frame=o.animation.frame(time);
  let Some(&g)=o.animation.frame_geometry.get(&frame).filter(|g|crate::valid_region(**g)&&o.sprite.is_some()) else{return (center,size);};
- let offset=rotate([(g[0]+g[2]*0.5-0.5)*size[0],(0.5-g[1]-g[3]*0.5)*size[1]],o.rotation);
+ let offset=rotate([(g[0]+g[2]*0.5-0.5)*size[0],(0.5-g[1]-g[3]*0.5)*size[1]],rotation);
  ([center[0]+offset[0],center[1]+offset[1]],[size[0]*g[2],size[1]*g[3]])
 }
 #[cfg(test)]mod frame_geometry_tests{use super::*;#[test]fn trim_keeps_world_pixels_and_collider(){let mut o=Object::new("trim",[10.,20.],[100.,80.],[255;4]);o.sprite=Some("assets/a.png".into());o.motion.pivot=[0.1,-0.25];o.animation.frame_geometry.insert(0,[0.25,0.125,0.5,0.5]);let (c,s)=sprite_frame_geometry(&o,false,0.);assert_eq!(c,[0.,50.]);assert_eq!(s,[50.,40.]);assert_eq!(o.size,[100.,80.]);o.rotation=90.;let (c,_)=sprite_frame_geometry(&o,false,0.);assert!((c[0]+20.).abs()<0.001&&(c[1]-10.).abs()<0.001);}}

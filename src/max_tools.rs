@@ -34,7 +34,7 @@ impl AssetDatabase {
  if let Ok(base)=root.join("assets").canonicalize(){for(rel,entry)in db.entries.iter_mut(){if crate::valid_asset(rel){if let Ok(path)=root.join(rel).canonicalize(){if path.starts_with(&base){if let Ok(meta)=fs::metadata(path){if meta.is_file(){entry.present=true;entry.bytes=meta.len();}}}}}}}
  db.entries.retain(|_,entry|entry.present||!entry.references.is_empty());
  // Cache is disposable. Drop parsed-document cache rather than exceeding file budget.
- let mut data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;if data.len()>32*1024*1024{db.documents.clear();data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;}if data.len()>32*1024*1024{return Err("Asset database exceeds 32 MiB".into());}if !fs::read(&file).is_ok_and(|old|old==data){fs::write(file,data).map_err(|e|e.to_string())?;}Ok(db)
+ let mut data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;if data.len()>32*1024*1024{db.documents.clear();data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;}if data.len()>32*1024*1024{return Err("Asset database exceeds 32 MiB".into());}if !fs::read(&file).is_ok_and(|old|old==data){write_dependency_cache(&file,&data)?;}Ok(db)
  }
 }
 #[cfg(test)]mod dependency32{use super::*;#[test]fn cycle_and_missing(){let mut db=AssetDatabase::default();db.graph.insert("a".into(),vec!["b".into(),"assets/a.png".into()]);db.graph.insert("b".into(),vec!["a".into(),"missing".into(),"assets/b.wav".into()]);let(a,m)=db.transitive_assets("a");assert_eq!(a,vec!["assets/a.png","assets/b.wav"]);assert_eq!(m,vec!["missing"]);}}
@@ -66,3 +66,10 @@ impl AssetDatabase{
  }
 }
 #[cfg(test)]mod graph35{use super::*;#[test]fn nested_and_missing(){let mut db=AssetDatabase::default();db.graph.insert("root".into(),vec!["assets/child.prefab.json".into()]);db.graph.insert("assets/child.prefab.json".into(),vec!["root".into(),"assets/missing.png".into()]);let(a,m)=db.transitive_assets("root");assert_eq!(a,vec!["assets/missing.png"]);assert_eq!(m,a);let rows=db.dependency_nodes("root");assert_eq!(rows.len(),4);assert!(rows.iter().any(|r|r.repeated));assert!(rows.iter().any(|r|r.missing));}}
+
+fn write_dependency_cache(file:&Path,bytes:&[u8])->Result<(),String>{use std::io::Write;let temporary=file.with_extension(format!("{}.tmp",Uuid::new_v4()));let result=(||{let mut out=fs::OpenOptions::new().create_new(true).write(true).open(&temporary).map_err(|e|e.to_string())?;out.write_all(bytes).and_then(|_|out.sync_all()).map_err(|e|e.to_string())?;drop(out);fs::rename(&temporary,file).map_err(|e|e.to_string())})();if result.is_err(){let _=fs::remove_file(&temporary);}result}
+impl AssetDatabase {
+ /// All upstream documents that depend on this resource, including nested prefabs.
+ pub fn upstream_documents(&self,asset:&str)->Vec<String>{let mut reverse:BTreeMap<&str,Vec<&str>>=BTreeMap::new();for (owner,edges) in &self.graph{for edge in edges{reverse.entry(edge.as_str()).or_default().push(owner.as_str());}}let mut seen=std::collections::BTreeSet::from([asset]);let mut todo=vec![asset];while let Some(node)=todo.pop(){if let Some(parents)=reverse.get(node){for &parent in parents{if seen.len()>=32768{break;}if seen.insert(parent){todo.push(parent);}}}}seen.remove(asset);seen.into_iter().map(str::to_owned).collect()}
+}
+#[cfg(test)]mod upstream37{use super::*;#[test]fn recursive_owners(){let mut db=AssetDatabase::default();db.graph.insert("scene".into(),vec!["prefab".into()]);db.graph.insert("prefab".into(),vec!["assets/a.png".into(),"scene".into()]);assert_eq!(db.upstream_documents("assets/a.png"),vec!["prefab","scene"]);}}

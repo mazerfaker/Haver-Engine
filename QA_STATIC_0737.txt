@@ -1,0 +1,8 @@
+Forge Engine v0.7.37 QA (static only)
+Python: 69 validation tests + 2 pack tests PASS (71 total).
+Signal Lost: 4 levels, 214 objects PASS static checks.
+Previous example files: 88/88 identical.
+WGSL: 9/10 identical; changed: src/gpu_scene.wgsl.
+Cargo manifest identical except package version; Cargo.lock/target excluded.
+cargo check attempted: cargo: command not found. Rust compiler, Rust tests, Windows execution, audio playback, GPU timings and memory savings not verified.
+JSON and TOML parsed successfully.

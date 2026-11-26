@@ -1,7 +1,7 @@
 use super::*;
 use forge_engine::{ClipCondition,ClipTransition,clip_frame_count,frame_start,set_frame_duration};
-pub(super) fn draw(ui:&mut egui::Ui,o:&mut Object,time:&mut f32){
- synchronized_preview(ui,o,time);
+pub(super) fn draw(ui:&mut egui::Ui,o:&mut Object,time:&mut f32,texture:Option<&egui::TextureHandle>){
+ synchronized_preview(ui,o,time,texture);
  graph(ui,o,time);
  regions(ui,o,time);
  event_track(ui,o,time);
@@ -159,10 +159,14 @@ fn multi_lane_canvas(ui:&mut egui::Ui,o:&mut Object,clip:&str,span:f32,time:&mut
 }
 
 /// Read-only preview from the exact timeline cursor; never dispatch gameplay events.
-fn synchronized_preview(ui:&mut egui::Ui,o:&Object,time:&mut f32){ui.collapsing("Synchronized preview / Синхронний перегляд",|ui|{
+fn synchronized_preview(ui:&mut egui::Ui,o:&Object,time:&mut f32,texture:Option<&egui::TextureHandle>){ui.collapsing("Synchronized preview / Синхронний перегляд",|ui|{
  let duration=frame_start(&o.animation,clip_frame_count(&o.animation)).max(0.001);if !duration.is_finite(){return;}
  ui.add(egui::Slider::new(time,0. ..=duration).text("Playhead seconds"));let t=(*time).clamp(0.,duration);let sample=o.motion.sample_clip_with_base(&o.clip_name,t,t,&o.animation,(o.position,o.rotation)).unwrap_or((o.position,o.rotation));let visual=forge_engine::sprite_visual_channels(o,t);let frame=o.animation.frame(t);
- ui.label(format!("Frame {} / {} · Position {:.2}, {:.2} · Rotation {:.2}°",frame+1,clip_frame_count(&o.animation),sample.0[0],sample.0[1],sample.1));ui.label(format!("Scale {:.2} × {:.2} · Opacity {:.1}%",visual[0],visual[1],visual[2]*100.));
- let (r,_)=ui.allocate_exact_size(egui::vec2(ui.available_width().max(100.),110.),egui::Sense::hover());let painter=ui.painter_at(r);painter.rect_filled(r,4.,ui.visuals().extreme_bg_color);let center=r.center();let half=egui::vec2(15.*visual[0].min(3.),15.*visual[1].min(3.));let (sin,cos)=sample.1.to_radians().sin_cos();let points=[[-1.,-1.],[1.,-1.],[1.,1.],[-1.,1.]].map(|v|{let x=v[0]*half.x;let y=v[1]*half.y;center+egui::vec2(x*cos-y*sin,x*sin+y*cos)});painter.add(egui::Shape::convex_polygon(points.to_vec(),egui::Color32::from_rgba_unmultiplied(110,180,230,(visual[2]*255.) as u8),egui::Stroke::new(1.,ui.visuals().text_color())));
- let local=if o.animation.looping{t.rem_euclid(duration)}else{t};let mut events:Vec<_>=o.motion.events.iter().filter(|e|e.clip==o.clip_name).collect();events.sort_by(|a,b|a.time.total_cmp(&b.time));if let Some(e)=events.iter().rev().find(|e|e.time<=local){ui.small(format!("Previous event: {} @ {:.3}s",e.name,e.time));}if let Some(e)=events.iter().find(|e|e.time>local){ui.small(format!("Next event: {} @ {:.3}s",e.name,e.time));}ui.small("Read-only transform schematic; events are not dispatched in this preview.");
+ ui.label(format!("Frame {} / {} · Position {:.2}, {:.2} · Rotation {:.2}°",frame.saturating_sub(o.animation.start)+1,clip_frame_count(&o.animation),sample.0[0],sample.0[1],sample.1));ui.label(format!("Scale {:.2} × {:.2} · Opacity {:.1}%",visual[0],visual[1],visual[2]*100.));
+ let (r,_)=ui.allocate_exact_size(egui::vec2(ui.available_width().max(100.),110.),egui::Sense::hover());let painter=ui.painter_at(r);painter.rect_filled(r,4.,ui.visuals().extreme_bg_color);let (world,size)=forge_engine::sprite_frame_geometry_at(o,false,t,sample.0,sample.1);
+ let extent=o.size[0].hypot(o.size[1]).max(1.);let scale=(r.width().min(r.height())*0.65/extent).min(8.);let center=r.center()+egui::vec2((world[0]-o.position[0])*scale,-(world[1]-o.position[1])*scale);let half=egui::vec2(size[0]*scale*0.5,size[1]*scale*0.5);let (sin,cos)=(-sample.1).to_radians().sin_cos();let points=[[-1.,-1.],[1.,-1.],[1.,1.],[-1.,1.]].map(|v|{let x=v[0]*half.x;let y=v[1]*half.y;center+egui::vec2(x*cos-y*sin,x*sin+y*cos)});
+ let tint=egui::Color32::from_rgba_unmultiplied(o.color[0],o.color[1],o.color[2],forge_engine::sprite_visual_alpha(o,t,o.color[3]));
+ if let Some(tex)=texture{let uv=o.animation.uv(t);let mut mesh=egui::Mesh::with_texture(tex.id());for i in 0..4{mesh.vertices.push(egui::epaint::Vertex{pos:points[i],uv:egui::pos2(uv[i][0],uv[i][1]),color:tint});}mesh.indices.extend_from_slice(&[0,1,2,0,2,3]);painter.add(egui::Shape::mesh(mesh));}else{painter.add(egui::Shape::convex_polygon(points.to_vec(),tint,egui::Stroke::new(1.,ui.visuals().text_color())));}
+ let anchor=r.center()+egui::vec2((sample.0[0]-o.position[0])*scale,-(sample.0[1]-o.position[1])*scale);painter.circle_stroke(anchor,3.,egui::Stroke::new(1.,egui::Color32::GOLD));
+ let local=if o.animation.looping{t.rem_euclid(duration)}else{t};let mut events:Vec<_>=o.motion.events.iter().filter(|e|e.clip==o.clip_name).collect();events.sort_by(|a,b|a.time.total_cmp(&b.time));if let Some(e)=events.iter().rev().find(|e|e.time<=local){ui.small(format!("Previous event: {} @ {:.3}s",e.name,e.time));}if let Some(e)=events.iter().find(|e|e.time>local){ui.small(format!("Next event: {} @ {:.3}s",e.name,e.time));}ui.small("Textured pose preview (fallback shape if unavailable); events are not dispatched in this preview.");
  });}

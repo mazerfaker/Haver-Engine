@@ -32,7 +32,7 @@ fn load_normal(root:&Path,rel:&str,images:&mut Assets<Image>)->Option<Handle<Ima
  if !crate::valid_asset(rel){return None;}
  let path=root.join(rel).canonicalize().ok()?; if !path.starts_with(root.join("assets").canonicalize().ok()?){return None;}
  let mut reader=image::ImageReader::open(path).ok()?;let mut limits=image::Limits::default();limits.max_image_width=Some(2048);limits.max_image_height=Some(2048);limits.max_alloc=Some(24*1024*1024);reader.limits(limits);let rgba=reader.decode().ok()?.to_rgba8();
- Some(images.add(Image::new(Extent3d{width:rgba.width(),height:rgba.height(),depth_or_array_layers:1},TextureDimension::D2,rgba.into_raw(),TextureFormat::Rgba8Unorm,RenderAssetUsages::default())))
+ Some(images.add(Image::new(Extent3d{width:rgba.width(),height:rgba.height(),depth_or_array_layers:1},TextureDimension::D2,rgba.into_raw(),TextureFormat::Rgba8Unorm,RenderAssetUsages::RENDER_WORLD)))
 }
 impl GpuDraw<'_,'_> {
  pub fn idle(&self)->bool {self.state.visuals.is_empty()}

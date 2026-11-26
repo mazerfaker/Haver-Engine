@@ -261,3 +261,6 @@ See [release notes](docs/RELEASE_0735.md) for shared PCM bus, timeline events, r
 ## v0.7.36
 
 See [release notes](docs/RELEASE_0736.md). Source candidate; Rust/Windows verification pending.
+
+## v0.7.37
+Textured synchronized preview, experimental cascaded PCM buses, upstream asset lookup and nested attachments. See `docs/RELEASE_0737.md`.
