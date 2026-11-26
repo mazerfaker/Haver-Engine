@@ -124,14 +124,14 @@ jobs:
               if ($LASTEXITCODE -ne 0) { throw "Validator failed: $($f.Name)" }
             }
           } finally { Stop-Transcript }
-      - name: Cargo check, test, build --release, headless QA and portable package
-        shell: powershell
-        run: .\tools\build_windows.ps1
       - name: Modular feature checks
         shell: powershell
         run: |
           Start-Transcript -Path forge-matrix.log
           try { .\tools\qa_matrix.ps1 -CheckFeaturesOnly } finally { Stop-Transcript }
+      - name: Cargo check, test, build --release, headless QA and portable package
+        shell: powershell
+        run: .\tools\build_windows.ps1
       - name: Isolated experimental examples (reported separately)
         id: labs
         continue-on-error: true
@@ -179,4 +179,4 @@ jobs:
             Cargo.lock
           if-no-files-found: warn
           retention-days: 30
-# Historic package: HaverEngine-v0.7.42-Windows-portable.zip
+# Historic package: HaverEngine-v0.7.43-Windows-portable.zip

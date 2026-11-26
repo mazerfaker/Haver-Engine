@@ -1,7 +1,7 @@
 use super::*;
 use serde::{Serialize,Deserialize};
 use std::collections::HashSet;
-#[derive(Default)] pub(super) struct Pro { pub multi:HashSet<Uuid>, pub clipboard:Vec<Object>, pub assets:Vec<String>, pub filter:String, pub asset_pick:Option<String>, pub last_scan:Option<std::time::Instant>, pub last_backup:Option<std::time::Instant>, pub settings:bool, pub keys:Keys, pub fps:f32 }
+#[derive(Default)] pub(super) struct Pro { pub multi:HashSet<Uuid>, pub clipboard:Vec<Object>, pub assets:Vec<String>, pub filter:String, pub asset_pick:Option<String>, pub last_scan:Option<std::time::Instant>, pub last_backup:Option<std::time::Instant>, pub settings:bool, pub keys:Keys, pub fps:f32, scan_path:Option<PathBuf>, scan_job:Option<(PathBuf,std::time::Instant,std::thread::JoinHandle<Vec<String>>)> }
 #[derive(Clone,Serialize,Deserialize)] #[serde(default)] pub(super) struct Keys { pub focus:String,pub move_key:String,pub rotate:String,pub scale:String }
 impl Default for Keys {fn default()->Self{Self{focus:"F".into(),move_key:"Q".into(),rotate:"E".into(),scale:"R".into()}}}
 pub(super) fn key(ctx:&egui::Context,name:&str)->bool{let k=match name.to_uppercase().as_str(){"F"=>egui::Key::F,"Q"=>egui::Key::Q,"E"=>egui::Key::E,"R"=>egui::Key::R,"G"=>egui::Key::G,"W"=>egui::Key::W,"T"=>egui::Key::T,"S"=>egui::Key::S,_=>return false};ctx.input(|i|!i.modifiers.ctrl&&i.key_pressed(k))}
@@ -9,7 +9,35 @@ fn selected(e:&Editor)->HashSet<Uuid>{let mut ids=e.pro.multi.clone();if let Som
 pub(super) fn copy(e:&mut Editor){let ids=selected(e);e.pro.clipboard=e.project.objects.iter().filter(|o|ids.contains(&o.id)).cloned().collect();}
 pub(super) fn paste(e:&mut Editor){let mut objs=e.pro.clipboard.clone();let ids:HashMap<_,_>=objs.iter().map(|o|(o.id,Uuid::new_v4())).collect();e.pro.multi.clear();for o in &mut objs{o.prefab_link=None;o.id=ids[&o.id];o.parent=o.parent.and_then(|p|ids.get(&p).copied());o.position[0]+=e.tools.snap;o.name.push_str(" Copy");e.pro.multi.insert(o.id);}e.selected=objs.last().map(|o|o.id);e.project.objects.extend(objs);}
 pub(super) fn group(e:&mut Editor){let ids=selected(e);if ids.is_empty(){return;}let mut g=Object::new("Group",[0.,0.],[1.,1.],[0,0,0,0]);g.layer=-100;let id=g.id;for o in &mut e.project.objects{if ids.contains(&o.id)&&!o.parent.is_some_and(|p|ids.contains(&p)){o.parent=Some(id);}}e.project.objects.push(g);e.selected=Some(id);e.pro.multi.clear();}
-fn scan(root:&std::path::Path,dir:&std::path::Path,out:&mut Vec<String>){if let Ok(entries)=std::fs::read_dir(dir){for entry in entries.flatten(){if out.len()>=10000{return;}let p=entry.path();let Ok(t)=entry.file_type()else{continue;};if t.is_dir(){scan(root,&p,out);}else if t.is_file()&&p.extension().and_then(|x|x.to_str()).is_some_and(|x|matches!(x.to_lowercase().as_str(),"png"|"jpg"|"jpeg")){if let Ok(rel)=p.strip_prefix(root){out.push(rel.to_string_lossy().replace('\\',"/"));}}}}}
-pub(super) fn tick(e:&mut Editor,ctx:&egui::Context){let now=std::time::Instant::now();let dt=ctx.input(|i|i.stable_dt);e.pro.fps=e.pro.fps*0.9+0.1/dt.max(0.001);if e.pro.last_scan.is_none_or(|t|now.duration_since(t).as_secs()>=5){e.pro.last_scan=Some(now);e.pro.assets.clear();if let Some(root)=e.path.as_ref().and_then(|p|p.parent()){scan(root,&root.join("assets"),&mut e.pro.assets);e.pro.assets.sort();}}if e.play.is_none()&&e.saved!=e.project&&e.pro.last_backup.is_none_or(|t|now.duration_since(t).as_secs()>=30){e.pro.last_backup=Some(now);if let Some(path)=&e.path{let backup=path.with_extension("recovery.json");if let Err(err)=e.project.save(&backup){e.status=err;}else{ultimate::mark_recovery(&backup);}}}}
+// Read-only, bounded traversal; the UI keeps the last complete snapshot.
+fn scan(root:&std::path::Path,dir:&std::path::Path,out:&mut Vec<String>,depth:usize,visited:&mut usize){
+ if depth>24{return;}
+ if let Ok(entries)=std::fs::read_dir(dir){for entry in entries.flatten(){
+  if out.len()>=10000||*visited>=32768{return;}*visited+=1;
+  let p=entry.path();let Ok(t)=entry.file_type()else{continue;};
+  if t.is_dir(){scan(root,&p,out,depth+1,visited);}
+  else if t.is_file()&&p.extension().and_then(|x|x.to_str()).is_some_and(|x|matches!(x.to_ascii_lowercase().as_str(),"png"|"jpg"|"jpeg")){
+   if let Ok(rel)=p.strip_prefix(root){let rel=rel.to_string_lossy().replace('\\',"/");if forge_engine::valid_asset(&rel){out.push(rel);}}
+  }
+ }}
+}
+fn tick_scan(e:&mut Editor,ctx:&egui::Context,now:std::time::Instant){
+ if e.pro.scan_path!=e.path{e.pro.scan_path=e.path.clone();e.pro.assets.clear();e.pro.last_scan=None;}
+ if e.pro.scan_job.as_ref().is_some_and(|(_,_,h)|h.is_finished()){
+  if let Some((path,stamp,h))=e.pro.scan_job.take(){
+   match h.join(){Ok(paths) if e.path.as_ref()==Some(&path)&&e.pro.last_scan==Some(stamp)=>e.pro.assets=paths,Ok(_)=>{},Err(_)=>e.status="Asset scan worker panicked".into()}
+  }
+ }
+ if e.pro.scan_job.is_none()&&e.pro.last_scan.is_none_or(|t|now.duration_since(t).as_secs()>=5){
+  e.pro.last_scan=Some(now);
+  if let Some(path)=e.path.clone(){if let Some(root)=path.parent().map(std::path::Path::to_path_buf){
+   match std::thread::Builder::new().name("haver-asset-scan".into()).spawn(move||{let mut out=Vec::new();let mut visited=0;scan(&root,&root.join("assets"),&mut out,0,&mut visited);out.sort();out.dedup();out}){
+    Ok(h)=>e.pro.scan_job=Some((path,now,h)),Err(err)=>e.status=err.to_string()
+   }
+  }}
+ }
+ if e.pro.scan_job.is_some(){ctx.request_repaint_after(std::time::Duration::from_millis(100));}
+}
+pub(super) fn tick(e:&mut Editor,ctx:&egui::Context){let now=std::time::Instant::now();let dt=ctx.input(|i|i.stable_dt);e.pro.fps=e.pro.fps*0.9+0.1/dt.max(0.001);tick_scan(e,ctx,now);if e.play.is_none()&&e.saved!=e.project&&e.pro.last_backup.is_none_or(|t|now.duration_since(t).as_secs()>=30){e.pro.last_backup=Some(now);if let Some(path)=&e.path{let backup=path.with_extension("recovery.json");if let Err(err)=e.project.save(&backup){e.status=err;}else{ultimate::mark_recovery(&backup);}}}}
 pub(super) fn timeline(ui:&mut egui::Ui,a:&forge_engine::Animation,time:&mut f32){let n=forge_engine::clip_frame_count(a).min(256);let start=a.start.min(a.total_frames()-1);egui::ScrollArea::horizontal().id_salt("frame_strip").show(ui,|ui|{ui.horizontal(|ui|{for i in 0..n{if ui.selectable_label(a.frame(*time)==start+i,format!("{:02}",i+1)).clicked(){*time=forge_engine::frame_sample_time(a,i);}}});});}
 pub(super) fn workspace(ctx:&egui::Context,e:&mut Editor){if !e.pro.settings{return;}let mut open=e.pro.settings;egui::Window::new("Editor preferences / Налаштування").open(&mut open).show(ctx,|ui|{for (label,value) in [("Focus",&mut e.pro.keys.focus),("Move",&mut e.pro.keys.move_key),("Rotate",&mut e.pro.keys.rotate),("Scale",&mut e.pro.keys.scale)]{egui::ComboBox::from_id_salt(label).selected_text(value.as_str()).show_ui(ui,|ui|{for k in ["F","Q","E","R","G","W","T","S"]{ui.selectable_value(value,k.into(),k);}});}ui.label("Ctrl+S, Ctrl+C, Ctrl+V, Ctrl+G are fixed.");});e.pro.settings=open;}

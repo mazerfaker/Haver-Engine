@@ -1,6 +1,16 @@
 use super::*;
 use forge_engine::{ClipCondition,ClipTransition,clip_frame_count,frame_start,set_frame_duration};
 pub(super) fn draw(ui:&mut egui::Ui,o:&mut Object,time:&mut f32,texture:Option<&egui::TextureHandle>,project_path:Option<&std::path::Path>){
+ let n=clip_frame_count(&o.animation);let start=o.animation.start.min(o.animation.total_frames()-1);
+ let current=o.animation.frame(*time).saturating_sub(start).min(n.saturating_sub(1));
+ ui.horizontal_wrapped(|ui|{
+  if ui.small_button("|◀").on_hover_text("First frame").clicked(){*time=forge_engine::frame_sample_time(&o.animation,0);}
+  if ui.small_button("◀").on_hover_text("Previous frame").clicked(){*time=forge_engine::frame_sample_time(&o.animation,current.saturating_sub(1));}
+  if ui.small_button("▶").on_hover_text("Next frame").clicked(){*time=forge_engine::frame_sample_time(&o.animation,(current+1).min(n.saturating_sub(1)));}
+  if ui.small_button("▶|").on_hover_text("Last frame").clicked(){*time=forge_engine::frame_sample_time(&o.animation,n.saturating_sub(1));}
+  ui.strong(format!("{} · {}/{} · {:.3} s",o.clip_name,current+1,n,*time));
+  if ui.small_button("Snap playhead to frame").clicked(){*time=frame_start(&o.animation,current);}
+ });
  synchronized_preview(ui,o,time,texture,project_path);
  graph(ui,o,time);
  regions(ui,o,time);
@@ -139,7 +149,7 @@ fn multi_lane_canvas(ui:&mut egui::Ui,o:&mut Object,clip:&str,span:f32,time:&mut
  ui.horizontal(|ui|{ui.selectable_value(&mut moving,false,"Select rectangle");ui.selectable_value(&mut moving,true,"Move selection");});ui.ctx().data_mut(|d|d.insert_temp(mode_id,moving));
  let zoom_id=id.with("zoom34");let disk=project_path.and_then(|p|preview_settings_path(p,o)).map(|p|p.with_extension("timeline.json"));
  let saved=ui.ctx().data(|d|d.get_temp::<(f32,f32,bool)>(zoom_id)).or_else(||disk.as_ref().and_then(|p|read_timeline_prefs(p))).unwrap_or((1.,0.,true));let(mut zoom,mut offset,mut include_events)=saved;
- ui.horizontal_wrapped(|ui|{ui.add(egui::Slider::new(&mut zoom,1. ..=32.).text("Zoom"));if ui.button("Fit").clicked(){zoom=1.;offset=0.;}if ui.button("Center playhead").clicked(){offset=(*time-span/zoom*0.5).max(0.);}if ui.button("Zoom selection").clicked(){let width=(selection.1[1]-selection.1[0]).abs();if width>0.0001{zoom=(span/width).clamp(1.,32.);offset=selection.1[0].min(selection.1[1]);}}ui.checkbox(&mut include_events,"Include event lane in copy/move");});
+ ui.horizontal_wrapped(|ui|{ui.add(egui::Slider::new(&mut zoom,1. ..=32.).text("Zoom"));if ui.button("Fit").clicked(){zoom=1.;offset=0.;}if ui.button("Center playhead").clicked(){offset=(*time-span/zoom*0.5).max(0.);}if ui.button("Zoom selection").clicked(){let width=(selection.1[1]-selection.1[0]).abs();if width>0.0001{zoom=(span/width).clamp(1.,32.);offset=selection.1[0].min(selection.1[1]);}}ui.checkbox(&mut include_events,"Include event lane in copy/move");if ui.small_button("Select all").clicked(){selection=([true;6],[0.,span]);}if ui.small_button("Visible range").clicked(){selection.1=[offset,(offset+span/zoom).min(span)];}});
  let visible=span/zoom;offset=offset.clamp(0.,(span-visible).max(0.));ui.add(egui::Slider::new(&mut offset,0. ..=(span-visible).max(0.)).text("Scroll seconds"));let prefs=(zoom,offset,include_events);ui.ctx().data_mut(|d|d.insert_temp(zoom_id,prefs));
  let pending_id=id.with("timeline_disk41");let previous=ui.ctx().data(|d|d.get_temp::<(f32,f32,bool)>(pending_id)).unwrap_or_else(||{ui.ctx().data_mut(|d|d.insert_temp(pending_id,saved));saved});let manual=ui.small_button("Save timeline preferences").clicked();if (prefs!=previous&&!ui.input(|i|i.pointer.primary_down()))||manual{if let Some(path)=&disk{match write_timeline_prefs(path,prefs){Ok(())=>ui.ctx().data_mut(|d|d.insert_temp(pending_id,prefs)),Err(err)=>{ui.small(err);}}}}
  let clipboard_id=egui::Id::new("timeline_clipboard34");let duration=frame_start(&o.animation,clip_frame_count(&o.animation));

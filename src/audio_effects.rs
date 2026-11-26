@@ -58,3 +58,46 @@ pub fn mix_bus_wavs(inputs:&[Vec<u8>],fx:WavEffects)->Result<Vec<u8>,String>{
  let mut mixed=[0_f32;512];let mut processed=[0_f32;512];let gain=1./parsed.len() as f32;for start in (0..count).step_by(512){let n=(count-start).min(512);mixed[..n].fill(0.);for (_,_,data) in &parsed{for (i,x) in mixed[..n].iter_mut().enumerate(){let at=(start+i)*2;if at+2<=data.len(){*x+=i16::from_le_bytes([data[at],data[at+1]]) as f32/32768.*gain;}}}bus.process_block(&[(&mixed[..n],1.)],&mut processed[..n])?;for x in &processed[..n]{output.extend_from_slice(&((*x*32768.).round().clamp(-32768.,32767.) as i16).to_le_bytes());}}Ok(output)
 }
 #[cfg(test)]mod summed34{use super::*;#[test]fn sum_before_effects_and_validate(){let mut bus=SummedBus::new(8000,1,Default::default()).unwrap();let mut out=[0.;2];bus.process_block(&[(&[0.2,0.4],0.5),(&[0.4,-0.2],0.5)],&mut out).unwrap();assert!((out[0]-0.3).abs()<1e-6);assert!((out[1]-0.1).abs()<1e-6);assert!(bus.process_block(&[(&[0.],1.)],&mut out).is_err());}}
+
+/// Opt-in offline bus dynamics. Existing live and offline EQ paths are unchanged.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub struct BusDynamics {
+ pub compressor_db:f32,pub ratio:f32,pub gate_db:f32,pub attack_ms:f32,pub release_ms:f32,
+}
+impl Default for BusDynamics {fn default()->Self{Self{compressor_db:-18.,ratio:3.,gate_db:-55.,attack_ms:10.,release_ms:100.}}}
+#[derive(Clone,Copy,Debug,Default)]
+pub struct DynamicsReport {pub frames:usize,pub peak_in:f32,pub peak_out:f32,pub rms_in:f32,pub rms_out:f32,pub max_reduction_db:f32}
+/// Process a bounded PCM16 RIFF WAV in place on a copy, preserving other chunks.
+/// Stereo-linked peak detector; smoothed attenuation only, no makeup gain.
+pub fn process_bus_dynamics(input:&[u8],fx:BusDynamics)->Result<(Vec<u8>,DynamicsReport),String>{
+ if input.len()<12||input.len()>34*1024*1024||&input[..4]!=b"RIFF"||&input[8..12]!=b"WAVE"{return Err("Expected PCM16 WAV, max 34 MiB".into());}
+ if !(-60. ..=0.).contains(&fx.compressor_db)||!(1. ..=20.).contains(&fx.ratio)||!(-100. ..=0.).contains(&fx.gate_db)||!(0.1..=200.).contains(&fx.attack_ms)||!(1. ..=2000.).contains(&fx.release_ms){return Err("Invalid dynamics settings".into());}
+ let mut fmt=None;let mut data=None;let mut at=12;
+ while at+8<=input.len(){let n=u32_at(input,at+4) as usize;let start=at+8;let end=start.checked_add(n).ok_or("Invalid WAV chunk")?;if end>input.len(){return Err("Truncated WAV chunk".into());}
+  match &input[at..at+4]{b"fmt " if n>=16=>{if fmt.is_some(){return Err("Duplicate WAV format".into());}fmt=Some(&input[start..end]);},b"data"=>{if data.is_some(){return Err("Duplicate WAV data".into());}data=Some(start..end);},_=>{}}
+  at=end+(n&1);
+ }
+ let fmt=fmt.ok_or("Missing WAV format")?;let data=data.ok_or("Missing WAV data")?;let channels=u16_at(fmt,2) as usize;let rate=u32_at(fmt,4);
+ if u16_at(fmt,0)!=1||!(1..=2).contains(&channels)||u16_at(fmt,14)!=16||u16_at(fmt,12) as usize!=channels*2||!(8000..=96000).contains(&rate)||data.len()%(channels*2)!=0{return Err("PCM16 mono/stereo 8–96 kHz required".into());}
+ let mut out=input.to_vec();let mut report=DynamicsReport::default();let(mut energy_in,mut energy_out)=(0.0_f64,0.0_f64);let mut gain=1.0_f32;
+ let attack=1.-(-1000./(fx.attack_ms*rate as f32)).exp();let release=1.-(-1000./(fx.release_ms*rate as f32)).exp();
+ let threshold=10_f32.powf(fx.gate_db/20.);
+ for frame in out[data].chunks_exact_mut(channels*2){
+  let peak=frame.chunks_exact(2).map(|b|(i16::from_le_bytes([b[0],b[1]]) as f32/32768.).abs()).fold(0.0_f32,f32::max);
+  let db=20.*peak.max(1e-10).log10();let excess=(db-fx.compressor_db).max(0.);
+  let target=if peak<threshold{0.}else{10_f32.powf(-excess*(1.-1./fx.ratio)/20.)};
+  gain+=(target-gain)*if target<gain{attack}else{release};gain=gain.clamp(0.,1.);
+  report.max_reduction_db=report.max_reduction_db.max(-20.*gain.max(1e-5).log10());report.frames+=1;
+  for b in frame.chunks_exact_mut(2){let x=i16::from_le_bytes([b[0],b[1]]) as f32/32768.;let v=(x*gain*32768.).round().clamp(-32768.,32767.) as i16;b.copy_from_slice(&v.to_le_bytes());let y=v as f32/32768.;
+   report.peak_in=report.peak_in.max(x.abs());report.peak_out=report.peak_out.max(y.abs());energy_in+=f64::from(x)*f64::from(x);energy_out+=f64::from(y)*f64::from(y);}
+ }
+ let n=(report.frames*channels).max(1) as f64;report.rms_in=(energy_in/n).sqrt() as f32;report.rms_out=(energy_out/n).sqrt() as f32;Ok((out,report))
+}
+#[cfg(test)]
+mod dynamics43 {
+ use super::*;
+ fn wav(samples:&[i16],channels:u16)->Vec<u8>{let mut b=b"RIFF".to_vec();let n=(samples.len()*2) as u32;b.extend_from_slice(&(36+n).to_le_bytes());b.extend_from_slice(b"WAVEfmt ");b.extend_from_slice(&16u32.to_le_bytes());b.extend_from_slice(&1u16.to_le_bytes());b.extend_from_slice(&channels.to_le_bytes());b.extend_from_slice(&8000u32.to_le_bytes());b.extend_from_slice(&(8000*u32::from(channels)*2).to_le_bytes());b.extend_from_slice(&(channels*2).to_le_bytes());b.extend_from_slice(&16u16.to_le_bytes());b.extend_from_slice(b"data");b.extend_from_slice(&n.to_le_bytes());for v in samples{b.extend_from_slice(&v.to_le_bytes());}b}
+ #[test]fn compresses_and_reports(){let b=wav(&vec![20000;8000],1);let (o,r)=process_bus_dynamics(&b,BusDynamics::default()).unwrap();assert_eq!(o.len(),b.len());assert_eq!(r.frames,8000);assert!(r.rms_out<r.rms_in*0.6);assert!(r.max_reduction_db>6.);}
+ #[test]fn gate_and_stereo_link(){let b=wav(&vec![10;16000],2);let(o,r)=process_bus_dynamics(&b,BusDynamics::default()).unwrap();assert!(r.rms_out<r.rms_in*0.2);assert!(o[44..].chunks_exact(4).all(|f|f[..2]==f[2..]));}
+ #[test]fn rejects_bad_settings_and_truncation(){let b=wav(&[1,2],1);assert!(process_bus_dynamics(&b,BusDynamics{ratio:f32::NAN,..Default::default()}).is_err());assert!(process_bus_dynamics(&b[..b.len()-1],BusDynamics::default()).is_err());}
+}

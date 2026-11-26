@@ -1,3 +1,7 @@
+# Haver Engine v0.7.43 — Ultimate Tools & Performance
+
+Candidate based on CI-verified v0.7.42. See `docs/RELEASE_0743.md`.
+
 # Haver Engine v0.7.42 — Engine Stabilization
 
 CI candidate based on verified Windows v0.7.41 (`352e737`). Explicit f32 UI strokes, scoped shared DSP diagnostics, preference sidecar validation and regression tests; Windows verification pending. See `docs/RELEASE_0742.md`.

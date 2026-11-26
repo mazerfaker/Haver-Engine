@@ -25,7 +25,7 @@ pub(super) fn frame_scene(e: &mut Editor, viewport: egui::Vec2) {
         let half=egui::vec2(cos.abs()*o.size[0].abs()+sin.abs()*o.size[1].abs(),sin.abs()*o.size[0].abs()+cos.abs()*o.size[1].abs())*0.5;
         lo=lo.min(center-half); hi=hi.max(center+half);
     }
-    if !lo.x.is_finite() || !hi.x.is_finite() {e.zoom=1.;e.pan=egui::Vec2::ZERO;return;}
+    if !lo.x.is_finite() || !hi.x.is_finite() || !lo.y.is_finite() || !hi.y.is_finite() {e.zoom=1.;e.pan=egui::Vec2::ZERO;return;}
     (e.zoom,e.pan)=fit_bounds(lo,hi,viewport);
 }
 pub(super) fn help(ui: &mut egui::Ui, uk: bool) {

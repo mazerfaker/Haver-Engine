@@ -22,12 +22,18 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
  // Normal maps use a single mip; explicit LOD avoids derivative-uniformity requirements.
  if base.a<=0.0{return vec4<f32>(0.0);}
  if p.light[0].z<=0.0 && p.light[1].z<=0.0 && p.light[2].z<=0.0 {return vec4<f32>(base.rgb*p.rotation.z,base.a);}
+ // Reject fragments outside all light radii before sampling normals.
+ let local=vec2<f32>(mesh.uv.x-0.5,0.5-mesh.uv.y)*p.geometry.zw;
+ let world=p.geometry.xy+rotate(local);
+ let d0=p.light[0].xy-world;let d1=p.light[1].xy-world;let d2=p.light[2].xy-world;
+ let reaches0=p.light[0].z>0.0&&dot(d0,d0)<p.light[0].z*p.light[0].z;
+ let reaches1=p.light[1].z>0.0&&dot(d1,d1)<p.light[1].z*p.light[1].z;
+ let reaches2=p.light[2].z>0.0&&dot(d2,d2)<p.light[2].z*p.light[2].z;
+ if !reaches0&&!reaches1&&!reaches2{return vec4<f32>(base.rgb*clamp(p.rotation.z,0.0,1.0),base.a);}
  // Flat fallback is exactly the existing RGBA8 normal texture value.
  var raw=vec3<f32>(1.0/255.0,1.0/255.0,1.0);
  if p.light_color[0].w>0.5 {raw=textureSampleLevel(normals,normal_sampler,uv,0.0).xyz*2.0-1.0;}
  let n=normalize(vec3<f32>(rotate(vec2<f32>(raw.x,-raw.y)),max(raw.z,0.001)));
- let local=vec2<f32>(mesh.uv.x-0.5,0.5-mesh.uv.y)*p.geometry.zw;
- let world=p.geometry.xy+rotate(local);
  var shade=vec3<f32>(p.rotation.z);
  for(var li:u32=0u;li<3u;li=li+1u){let light=p.light[li];if light.z<=0.0{continue;}let delta=light.xy-world;let dist2=dot(delta,delta);if dist2>=light.z*light.z{continue;}let dist=sqrt(dist2);
   let diffuse=max(dot(n,normalize(vec3<f32>(delta,light.z*0.25))),0.0);if diffuse<=0.0{continue;}
