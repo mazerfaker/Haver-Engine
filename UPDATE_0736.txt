@@ -1,0 +1,1 @@
+Extract this patch over Forge Engine v0.7.35. Keep Cargo.lock and target. Run QUICK_CHECK.bat then QUICK_TEST.bat. No new Cargo dependencies. Source candidate, not a compiled release.

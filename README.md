@@ -257,3 +257,7 @@ See [RELEASE_0734.md](RELEASE_0734.md) for features, usage and validation limits
 
 ## v0.7.35
 See [release notes](docs/RELEASE_0735.md) for shared PCM bus, timeline events, recursive asset browser and QA limitations.
+
+## v0.7.36
+
+See [release notes](docs/RELEASE_0736.md). Source candidate; Rust/Windows verification pending.

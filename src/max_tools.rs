@@ -11,8 +11,8 @@ pub struct AssetDatabase {pub entries:BTreeMap<String,AssetEntry>,#[serde(defaul
 impl AssetDatabase {
  /// Return reachable resources and unresolved document links; cycles are visited once.
  pub fn transitive_assets(&self,owner:&str)->(Vec<String>,Vec<String>){
-  let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];
-  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if let Some(edges)=self.graph.get(&node){for edge in edges{if !seen.contains(edge){todo.push(edge.clone());}}}else if crate::valid_asset(&node){if self.entries.get(&node).is_none_or(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);}else{unresolved.insert(node);}}
+  let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];let mut queued=std::collections::BTreeSet::from([owner.to_string()]);
+  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if let Some(edges)=self.graph.get(&node){for edge in edges{if !queued.contains(edge){if queued.len()>=32768{unresolved.insert("Traversal budget exceeded".into());break;}queued.insert(edge.clone());todo.push(edge.clone());}}}else if crate::valid_asset(&node){if self.entries.get(&node).is_none_or(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);}else{unresolved.insert(node);}}
   (assets.into_iter().collect(),unresolved.into_iter().collect())
  }
  pub fn refresh(root:&Path,paths:&[String],active:&Project)->Result<Self,String>{Self::refresh_with_cache(root,paths,active,true)}

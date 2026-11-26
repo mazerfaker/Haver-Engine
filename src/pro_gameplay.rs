@@ -90,3 +90,9 @@ impl Sound {
  }
 }
 #[cfg(test)]mod bus33{use super::*;#[test]fn inherits_nearest_preset(){let mut s=GameSettings::default();s.audio_buses.insert("Room".into(),AudioBusDefinition{effects:Some(crate::WavEffects{reverb:0.5,..Default::default()}),..Default::default()});s.audio_buses.insert("Child".into(),AudioBusDefinition{parent:"Room".into(),..Default::default()});let sound=Sound{custom_bus:Some("Child".into()),..Default::default()};assert_eq!(sound.effective_effects(&s).unwrap().reverb,0.5);assert!(s.valid_audio_buses());}}
+
+impl GameSettings {
+ /// Combine ancestor parameters for experimental summed sources only; not cascaded signal mixing.
+ pub fn summed_bus_effects<'a>(&'a self,mut name:&'a str)->crate::WavEffects{let mut fx=crate::WavEffects::default();if self.custom_bus_gain(name).is_none(){return fx;}for _ in 0..32{let Some(bus)=self.audio_buses.get(name)else{break;};if let Some(b)=bus.effects.filter(|v|valid_bus_effects(*v)){fx.low_db+=b.low_db;fx.high_db+=b.high_db;fx.room=1.-(1.-fx.room)*(1.-b.room);fx.reverb=1.-(1.-fx.reverb)*(1.-b.reverb);}name=&bus.parent;}fx.low_db=fx.low_db.clamp(-12.,12.);fx.high_db=fx.high_db.clamp(-12.,12.);fx}
+}
+#[cfg(test)]mod hierarchy36{use super::*;#[test]fn parent_effects_combine(){let mut s=GameSettings::default();let fx=crate::WavEffects{low_db:8.,room:0.5,..Default::default()};s.audio_buses.insert("Parent".into(),AudioBusDefinition{effects:Some(fx),..Default::default()});s.audio_buses.insert("Child".into(),AudioBusDefinition{parent:"Parent".into(),effects:Some(fx),..Default::default()});let a=s.summed_bus_effects("Child");assert_eq!(a.low_db,12.);assert_eq!(a.room,0.75);}}

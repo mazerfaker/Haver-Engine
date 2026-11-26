@@ -131,15 +131,15 @@ pub fn update_composite_prefab(root:&std::path::Path,file:&str,doc:&CompositeEdi
 #[cfg(test)]mod property_channel_offset_tests{use super::*;#[test]fn property_channels_follow_instance_offset(){let mut o=crate::Object::new("animated",[0.;2],[32.;2],[255;4]);o.motion.property_channels.insert("Idle".into(),[vec![crate::ScalarKey{time:0.,value:4.,smooth:false,bezier:None,bezier_x:None}],vec![crate::ScalarKey{time:0.,value:6.,smooth:false,bezier:None,bezier_x:None}],vec![crate::ScalarKey{time:0.,value:90.,smooth:false,bezier:None,bezier_x:None}]]);let v=instantiate_checked(vec![o],[10.,20.]).unwrap();let channels=&v[0].motion.property_channels["Idle"];assert_eq!(channels[0][0].value,14.);assert_eq!(channels[1][0].value,26.);assert_eq!(channels[2][0].value,90.);}}
 
 /// Read-only bounded dependency tree, retaining repeated references in separate branches.
-#[derive(Clone,Debug)]pub struct PrefabGraphRow{pub depth:usize,pub file:String,pub error:Option<String>}
+#[derive(Clone,Debug)]pub struct PrefabGraphRow{pub id:uuid::Uuid,pub depth:usize,pub file:String,pub error:Option<String>}
 pub fn prefab_dependency_rows(root:&std::path::Path,refs:&[NestedPrefab])->Vec<PrefabGraphRow>{
  use std::io::Read;
- fn visit(root:&std::path::Path,file:&str,depth:usize,stack:&mut HashSet<std::path::PathBuf>,out:&mut Vec<PrefabGraphRow>){
-  if out.len()>=128{return;}let at=out.len();out.push(PrefabGraphRow{depth,file:file.into(),error:None});
+ fn visit(root:&std::path::Path,file:&str,id:uuid::Uuid,depth:usize,stack:&mut HashSet<std::path::PathBuf>,out:&mut Vec<PrefabGraphRow>){
+  if out.len()>=128{return;}let at=out.len();out.push(PrefabGraphRow{id,depth,file:file.into(),error:None});
   let read=(||->Result<(std::path::PathBuf,Vec<NestedPrefab>),String>{if depth>8||!valid_prefab_file(file){return Err("Invalid reference or depth limit".into());}let p=root.join(file).canonicalize().map_err(|e|e.to_string())?;if !p.starts_with(root)||stack.contains(&p){return Err("Cycle or outside library".into());}let mut bytes=Vec::new();std::fs::File::open(&p).map_err(|e|e.to_string())?.take(8*1024*1024+1).read_to_end(&mut bytes).map_err(|e|e.to_string())?;if bytes.len()>8*1024*1024{return Err("File exceeds 8 MiB".into());}let doc:LibraryDocument=serde_json::from_slice(&bytes).map_err(|e|e.to_string())?;Ok((p,match doc{LibraryDocument::Legacy(_)=>vec![],LibraryDocument::Composite{nested,..}=>nested}))})();
-  match read{Ok((p,children))=>{stack.insert(p.clone());for c in children{if out.len()>=128{break;}visit(root,&c.file,depth+1,stack,out);}stack.remove(&p);},Err(e)=>out[at].error=Some(e)}
+  match read{Ok((p,children))=>{stack.insert(p.clone());for c in children{if out.len()>=128{break;}visit(root,&c.file,nested_id(id,c.id),depth+1,stack,out);}stack.remove(&p);},Err(e)=>out[at].error=Some(e)}
  }
- let mut out=Vec::new();if let Ok(root)=root.canonicalize(){let mut stack=HashSet::new();for n in refs.iter().take(128){visit(&root,&n.file,0,&mut stack,&mut out);}}out
+ let mut out=Vec::new();if let Ok(root)=root.canonicalize(){let mut stack=HashSet::new();for n in refs.iter().take(128){visit(&root,&n.file,n.id,0,&mut stack,&mut out);}}out
 }
 
 #[cfg(test)]mod dependency28{use super::*;#[test]fn recursion_and_cycle(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let n=NestedPrefab{id:uuid::Uuid::new_v4(),file:"a.prefab.json".into(),parent:None,offset:[0.;2]};std::fs::write(root.join("a.prefab.json"),serde_json::to_vec(&serde_json::json!({"nested":[n.clone()]})).unwrap()).unwrap();let rows=prefab_dependency_rows(&root,&[n]);assert_eq!(rows.len(),2);assert!(rows[1].error.is_some());std::fs::remove_dir_all(root).unwrap();}}
