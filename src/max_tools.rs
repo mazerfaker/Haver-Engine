@@ -9,7 +9,7 @@ struct DependencyDocument { stamp:[u64;3], assets:Vec<(String,String)>, prefabs:
 #[derive(Default,Serialize,Deserialize)]
 pub struct AssetDatabase {pub entries:BTreeMap<String,AssetEntry>,#[serde(default)]pub scan_warnings:Vec<String>,#[serde(default)]pub graph:BTreeMap<String,Vec<String>>,#[serde(default)]pub cache_hits:usize,#[serde(default)]pub cache_misses:usize,#[serde(default)]documents:BTreeMap<String,DependencyDocument>}
 impl AssetDatabase {
- /// Return reachable resources and unresolved document links; cycles are visited once.
+ /// Return reachable resources and unresolved links (including absent assets); cycles are visited once.
  pub fn transitive_assets(&self,owner:&str)->(Vec<String>,Vec<String>){
   let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];let mut queued=std::collections::BTreeSet::from([owner.to_string()]);
   while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if let Some(edges)=self.graph.get(&node){for edge in edges{if !queued.contains(edge){if queued.len()>=32768{unresolved.insert("Traversal budget exceeded".into());break;}queued.insert(edge.clone());todo.push(edge.clone());}}}else if crate::valid_asset(&node){if self.entries.get(&node).is_none_or(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);}else{unresolved.insert(node);}}
@@ -37,7 +37,35 @@ impl AssetDatabase {
  let mut data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;if data.len()>32*1024*1024{db.documents.clear();data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;}if data.len()>32*1024*1024{return Err("Asset database exceeds 32 MiB".into());}if !fs::read(&file).is_ok_and(|old|old==data){write_dependency_cache(&file,&data)?;}Ok(db)
  }
 }
-#[cfg(test)]mod dependency32{use super::*;#[test]fn cycle_and_missing(){let mut db=AssetDatabase::default();db.graph.insert("a".into(),vec!["b".into(),"assets/a.png".into()]);db.graph.insert("b".into(),vec!["a".into(),"missing".into(),"assets/b.wav".into()]);let(a,m)=db.transitive_assets("a");assert_eq!(a,vec!["assets/a.png","assets/b.wav"]);assert_eq!(m,vec!["missing"]);}}
+#[cfg(test)]
+mod dependency32 {
+ use super::*;
+ fn fixture() -> AssetDatabase {
+  let mut db=AssetDatabase::default();
+  db.graph.insert("a".into(),vec!["b".into(),"assets/a.png".into()]);
+  db.graph.insert("b".into(),vec!["a".into(),"missing".into(),"assets/b.wav".into()]);
+  for path in ["assets/a.png","assets/b.wav"] {
+   db.entries.insert(path.into(),AssetEntry{id:Uuid::new_v4(),bytes:1,references:vec![],present:true});
+  }
+  db
+ }
+ #[test]
+ fn cycle_and_missing(){
+  let db=fixture();
+  let(a,m)=db.transitive_assets("a");
+  assert_eq!(a,vec!["assets/a.png","assets/b.wav"]);
+  assert_eq!(m,vec!["missing"]);
+ }
+ #[test]
+ fn reports_absent_and_unregistered_assets(){
+  let mut db=fixture();
+  db.entries.get_mut("assets/a.png").unwrap().present=false;
+  db.entries.remove("assets/b.wav");
+  let(a,m)=db.transitive_assets("a");
+  assert_eq!(a,vec!["assets/a.png","assets/b.wav"]);
+  assert_eq!(m,vec!["assets/a.png","assets/b.wav","missing"]);
+ }
+}
 #[derive(Deserialize)] struct Atlas{frames:Vec<Frame>,meta:Meta}
 #[derive(Deserialize)] struct Frame{frame:Bounds,duration:u32,#[serde(default)]rotated:bool,#[serde(default)]trimmed:bool}
 #[derive(Deserialize)] struct Bounds{x:u32,y:u32,w:u32,h:u32}
