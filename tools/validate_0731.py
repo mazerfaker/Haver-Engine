@@ -21,7 +21,7 @@ class Changes(unittest.TestCase):
   for f,terms in {'src/bin/forge_editor.rs':['FORGE_GPU_PROFILE','RenderDiagnosticsPlugin','diagnostics.as_deref()'],'src/gpu_particles.rs':['diagnostic_recorder()','forge_particle_compute','span.end(ctx.command_encoder())'],'src/bin/forge_editor/max.rs':['/elapsed_gpu','"gpu_pass_ms":gpu_pass_ms','"gpu_frame_ms":null','"total_vram_bytes":null','sampled_peak_rss_bytes','process_cpu_percent'],'src/bin/forge_editor/ultimate.rs':['recursive_node31','ancestors.truncate(depth)','Open selected dependency (discard current draft)']}.items():
    for term in terms:self.assertIn(term,(ROOT/f).read_text())
  def test_lock(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.40');p=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.41');p=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
   for version in range(14,31):
-   old=f'[[package]]\nname = "forge_engine"\nversion = "0.7.{version}"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(p,r'\g<1>0.7.40\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
+   old=f'[[package]]\nname = "forge_engine"\nversion = "0.7.{version}"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(p,r'\g<1>0.7.41\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
 if __name__=='__main__':unittest.main()

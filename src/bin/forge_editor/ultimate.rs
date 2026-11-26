@@ -15,7 +15,7 @@ pub(super) fn prefab_library(ui:&mut egui::Ui,e:&mut Editor){
  ui.collapsing("Prefab library / Бібліотека",|ui|{
   linked_ui(ui,e);
   let Some(root)=e.path.as_ref().and_then(|p|p.parent()).map(|p|p.join("prefabs"))else{ui.label("Save project first");return;};
-  composer_ui(ui,e,&root);ui.small("Cross-file subtree transfer: tools/transfer_prefab.py (dry run, journal, unused prefabs only). Close editor before applying.");
+  composer_ui(ui,e,&root);super::master::prefab_transfer_tools(ui,e);
   if ui.button("Save selected subtree to library").clicked(){if let Some(id)=e.selected{let v=forge_engine::prefab(&e.project,id);let result=(||->Result<(),String>{forge_engine::validate_prefab(&v)?;std::fs::create_dir_all(&root).map_err(|x|x.to_string())?;let path=root.join(format!("{id}.prefab.json"));std::fs::write(path,serde_json::to_vec_pretty(&v).map_err(|x|x.to_string())?).map_err(|x|x.to_string())})();e.status=result.map(|_|"Prefab saved".into()).unwrap_or_else(|x|x);}}
   if let Ok(entries)=std::fs::read_dir(&root){let mut paths:Vec<_>=entries.flatten().map(|x|x.path()).filter(|p|p.file_name().and_then(|n|n.to_str()).is_some_and(|n|n.ends_with(".prefab.json"))).take(256).collect();paths.sort();for path in paths{if ui.button(path.file_name().unwrap_or_default().to_string_lossy().into_owned()).clicked(){let result=forge_engine::load_library_prefab(&root,path.file_name().and_then(|n|n.to_str()).unwrap_or("")).and_then(|v|forge_engine::instantiate_linked(v,path.file_name().and_then(|n|n.to_str()).unwrap_or(""),[e.tools.snap,0.]));match result{Ok(v)=>{e.selected=v.iter().find(|o|o.parent.is_none()).map(|o|o.id);e.project.objects.extend(v);},Err(err)=>e.status=err}}}}
  });

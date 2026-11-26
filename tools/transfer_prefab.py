@@ -105,14 +105,18 @@ def plan(root,src,dst,object_id,parent=None):
         if p.exists():ops.append((cache,tx.read(p,tx.MAX_DOC),None))
     return root,ops,len(take)
 
-def apply(root,src,dst,object_id,parent=None,fail_after=None):
+def plan_token(ops):
+    return tx.digest(tx.encoded([(rel, None if a is None else tx.digest(a), None if b is None else tx.digest(b)) for rel,a,b in ops]))
+
+def apply(root,src,dst,object_id,parent=None,fail_after=None,expected_plan=None):
     root,ops,n=plan(root,src,dst,object_id,parent)
+    if expected_plan is not None and expected_plan!=plan_token(ops): raise RuntimeError('Transfer plan changed after approval; run dry run again')
     return tx.commit_ops(root,ops,fail_after),n
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('root',type=Path);p.add_argument('source');p.add_argument('destination');p.add_argument('object');p.add_argument('--parent');p.add_argument('--apply',action='store_true');args=p.parse_args()
-    _,_,n=plan(args.root,args.source,args.destination,args.object,args.parent);print(f'{n} objects in subtree; source and destination validated')
-    if args.apply: print('Committed. Recovery journal:',apply(args.root,args.source,args.destination,args.object,args.parent)[0])
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('root',type=Path);p.add_argument('source');p.add_argument('destination');p.add_argument('object');p.add_argument('--parent');p.add_argument('--apply',action='store_true');p.add_argument('--expect-plan');args=p.parse_args()
+    _,ops,n=plan(args.root,args.source,args.destination,args.object,args.parent);print('Plan SHA256:',plan_token(ops));print(f'{n} objects in subtree; source and destination validated')
+    if args.apply: print('Committed. Recovery journal:',apply(args.root,args.source,args.destination,args.object,args.parent,expected_plan=args.expect_plan)[0])
     else:print('Dry run only. Close editors and players before --apply.')
 if __name__=='__main__':
     try:main()

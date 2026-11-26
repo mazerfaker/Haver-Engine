@@ -23,7 +23,7 @@ impl Plugin for GpuScenePlugin {
  }
 }
 struct Visual { entity:Entity, material:Handle<SceneMaterial>, transform:Transform }
-#[derive(Resource,Default)] pub struct GpuScene { visuals:HashMap<Entity,Visual>, normals:HashMap<PathBuf,Option<Handle<Image>>>, normal_payload:HashMap<PathBuf,u64>, flat:Option<Handle<Image>>, white:Option<Handle<Image>>, quad:Option<Handle<Mesh>>, light_cache:LightGrid, light_signature:Vec<(uuid::Uuid,[u32;2],u32)>, solid_cache:crate::spatial::SpatialIndex, solid_signature:Vec<(uuid::Uuid,[u32;2],[u32;2],[u32;2])>, scratch:Vec<usize>, alive_scratch:HashSet<Entity>, normal_scratch:HashSet<PathBuf>, solid_scratch:Vec<(uuid::Uuid,Vec2,Vec2,Vec2)> }
+#[derive(Resource,Default)] pub struct GpuScene { visuals:HashMap<Entity,Visual>, normals:HashMap<PathBuf,Option<Handle<Image>>>, normal_payload:HashMap<PathBuf,u64>, normal_stamps:HashMap<PathBuf,Option<(u64,std::time::SystemTime)>>, normal_poll:Option<std::time::Instant>, flat:Option<Handle<Image>>, white:Option<Handle<Image>>, quad:Option<Handle<Mesh>>, light_cache:LightGrid, light_signature:Vec<(uuid::Uuid,[u32;2],u32)>, solid_cache:crate::spatial::SpatialIndex, solid_signature:Vec<(uuid::Uuid,[u32;2],[u32;2],[u32;2])>, scratch:Vec<usize>, alive_scratch:HashSet<Entity>, normal_scratch:HashSet<PathBuf>, solid_scratch:Vec<(uuid::Uuid,Vec2,Vec2,Vec2)> }
 #[derive(bevy::ecs::system::SystemParam)] pub struct GpuDraw<'w,'s> {
  state:ResMut<'w,GpuScene>, meshes:ResMut<'w,Assets<Mesh>>, images:ResMut<'w,Assets<Image>>, materials:ResMut<'w,Assets<SceneMaterial>>, commands:Commands<'w,'s>,
 }
@@ -40,6 +40,9 @@ impl GpuDraw<'_,'_> {
   if (!p.settings.gpu_lighting||p.isometric)&&self.state.visuals.is_empty(){if !self.state.light_signature.is_empty()||!self.state.solid_signature.is_empty(){self.state.light_signature.clear();self.state.solid_signature.clear();self.state.light_cache=Default::default();self.state.solid_cache=Default::default();self.state.scratch=Vec::new();self.state.alive_scratch=Default::default();self.state.normal_scratch=Default::default();self.state.solid_scratch=Vec::new();}INDEX_NS.store(0,Ordering::Relaxed);SYNC_NS.store(0,Ordering::Relaxed);MATERIAL_COUNT.store(0,Ordering::Relaxed);NORMAL_PAYLOAD.store(0,Ordering::Relaxed);NORMAL_COUNT.store(0,Ordering::Relaxed);return;}
   let sync_start=std::time::Instant::now();let mut alive=std::mem::take(&mut self.state.alive_scratch);alive.clear();let mut used_normals=std::mem::take(&mut self.state.normal_scratch);used_normals.clear();
   let enabled=p.settings.gpu_lighting && !p.isometric;
+  // Check only the bounded resident normal cache, not the disk per sprite/frame.
+  if self.state.normal_poll.is_none_or(|last|last.elapsed()>=std::time::Duration::from_millis(500)){self.state.normal_poll=Some(std::time::Instant::now());let mut stale=Vec::new();for key in self.state.normals.keys(){if self.state.normal_stamps.get(key).copied()!=Some(normal_stamp(key)){stale.push(key.clone());}}for key in stale{if let Some(Some(h))=self.state.normals.remove(&key){self.images.remove(h.id());}self.state.normal_payload.remove(&key);self.state.normal_stamps.remove(&key);}}
+
   let indexing_start=std::time::Instant::now();let lights:Vec<_>=if enabled {p.objects.iter().filter_map(|o|o.pro.light.as_ref().filter(|l|l.radius>0.).map(|l|(o,l))).collect()}else{vec![]};
   let light_key=|(o,l):&(&Object,&crate::Light)|(o.id,o.position.map(f32::to_bits),l.radius.to_bits());
   if !self.state.light_signature.iter().copied().eq(lights.iter().map(light_key)){self.state.light_cache=LightGrid::new(&lights);self.state.light_signature.clear();self.state.light_signature.extend(lights.iter().map(light_key));LIGHT_REBUILDS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}else{LIGHT_HITS.fetch_add(1,std::sync::atomic::Ordering::Relaxed);}
@@ -59,7 +62,7 @@ impl GpuDraw<'_,'_> {
    let (center,frame_size)=crate::sprite_frame_geometry(o,false,anim_time);let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
    let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,anim_time,tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
    let strength=|(s,l):&(&Object,&crate::Light)|{if tint[3]==0{return 0.;}let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
-   let relevant=best_n_fixed::<_,3>(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().flatten().enumerate(){
+   let relevant=best_n_fixed::<_,3>(self.state.light_cache.candidates(center.to_array(),lights.len()).take(if tint[3]==0{0}else{usize::MAX}).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().flatten().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
     let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size).max(Vec2::splat(frame_size[0].hypot(frame_size[1])))+Vec2::splat(p.settings.shadow_softness.clamp(0.,32.));let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n_fixed::<_,4>(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
     for (i,(_,b)) in blocks.into_iter().flatten().enumerate(){params.blockers[li*4+i]=b;}
@@ -67,7 +70,7 @@ impl GpuDraw<'_,'_> {
    let normal=if lights.is_empty(){flat.clone()}else if params.light.iter().all(|l|l.z<=0.){flat.clone()}else if let Some((root,rel))=root.zip(o.production.normal_map.as_deref()) {
     let key=root.join(rel);used_normals.insert(key.clone());
     // Limit resident distinct normal maps; oversized or unavailable maps use flat normal.
-    if !self.state.normals.contains_key(&key)&&self.state.normals.len()<8 {let loaded=load_normal(root,rel,&mut self.images);let handle=loaded.map(|(handle,bytes)|{self.state.normal_payload.insert(key.clone(),bytes);handle});self.state.normals.insert(key.clone(),handle);}
+    if !self.state.normals.contains_key(&key)&&self.state.normals.len()<8 {let loaded=load_normal(root,rel,&mut self.images);let handle=loaded.map(|(handle,bytes)|{self.state.normal_payload.insert(key.clone(),bytes);handle});self.state.normal_stamps.insert(key.clone(),normal_stamp(&key));self.state.normals.insert(key.clone(),handle);}
     self.state.normals.get(&key).cloned().flatten().unwrap_or(flat.clone())
    }else{flat.clone()};
    // The unused fourth color component tells the shader whether a real normal texture is bound.
@@ -78,7 +81,7 @@ impl GpuDraw<'_,'_> {
    if *visibility!=Visibility::Hidden{*visibility=Visibility::Hidden;}
   }
   let commands=&mut self.commands;let materials=&mut self.materials;self.state.visuals.retain(|id,v|{if alive.contains(id){true}else{commands.entity(v.entity).despawn();materials.remove(v.material.id());false}});
-  let images=&mut self.images;self.state.normals.retain(|p,handle|{if used_normals.contains(p){true}else{if let Some(h)=handle{images.remove(h.id());}false}});self.state.normal_payload.retain(|p,_|used_normals.contains(p));NORMAL_PAYLOAD.store(self.state.normal_payload.values().copied().sum(),Ordering::Relaxed);NORMAL_COUNT.store(self.state.normal_payload.len() as u64,Ordering::Relaxed);self.state.scratch=candidates;self.state.alive_scratch=alive;self.state.normal_scratch=used_normals;self.state.solid_scratch=solids;MATERIAL_COUNT.store(self.state.visuals.len() as u64,Ordering::Relaxed);SYNC_NS.store(sync_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
+  let images=&mut self.images;self.state.normals.retain(|p,handle|{if used_normals.contains(p){true}else{if let Some(h)=handle{images.remove(h.id());}false}});self.state.normal_payload.retain(|p,_|used_normals.contains(p));self.state.normal_stamps.retain(|p,_|used_normals.contains(p));NORMAL_PAYLOAD.store(self.state.normal_payload.values().copied().sum(),Ordering::Relaxed);NORMAL_COUNT.store(self.state.normal_payload.len() as u64,Ordering::Relaxed);self.state.scratch=candidates;self.state.alive_scratch=alive;self.state.normal_scratch=used_normals;self.state.solid_scratch=solids;MATERIAL_COUNT.store(self.state.visuals.len() as u64,Ordering::Relaxed);SYNC_NS.store(sync_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
  }
 }
 
@@ -122,3 +125,5 @@ pub fn lighting_material_count()->u64{MATERIAL_COUNT.load(Ordering::Relaxed)}
 static NORMAL_PAYLOAD:AtomicU64=AtomicU64::new(0);static NORMAL_COUNT:AtomicU64=AtomicU64::new(0);
 /// RGBA8 texel payload of owned normal maps. Not device allocation size or total VRAM.
 pub fn normal_map_payload()->(u64,u64){(NORMAL_COUNT.load(Ordering::Relaxed),NORMAL_PAYLOAD.load(Ordering::Relaxed))}
+
+fn normal_stamp(p:&Path)->Option<(u64,std::time::SystemTime)>{let m=std::fs::metadata(p).ok()?;if !m.is_file(){return None;}Some((m.len(),m.modified().ok()?))}

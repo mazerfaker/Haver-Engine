@@ -155,19 +155,23 @@ def commit_ops(root,ops,fail_after=None):
     return journal
 
 def rollback(root,journal):
-    root=root.resolve(strict=True); journal=journal.resolve(strict=True)
+    root=root.resolve(strict=True); original=journal.absolute(); journal=journal.resolve(strict=True)
+    if original!=journal: raise ValueError('Linked or aliased journal path')
     if journal.parent!=root or not journal.name.startswith('.forge-relocation-'): raise ValueError('Invalid journal path')
-    record=json_read(read(journal/'journal.json',MAX_DOC)); entries=record['entries']
+    record=json_read(read(checked(root,journal.name+'/journal.json'),MAX_DOC)); entries=record['entries']
+    if record.get('state') not in {'prepared','committed','rolled_back'} or not isinstance(entries,list) or len(entries)>32768 or len({e['path'].casefold() for e in entries})!=len(entries): raise ValueError('Invalid journal entries')
     # Preflight entire rollback; refuse to overwrite unrelated edits.
     pending=[]
     for i,e in enumerate(entries):
         p=checked(root,e['path']); current=read(p) if p.exists() else None; h=None if current is None else digest(current)
         if h not in (e['before'],e['after']): raise RuntimeError(f'Rollback conflict: {p}; backups retained in {journal}')
-        before=None if e['before'] is None else read(journal/f'{i}.before')
+        before=None if e['before'] is None else read(checked(root,journal.name+f'/{i}.before'))
         if before is not None and digest(before)!=e['before']: raise RuntimeError('Backup hash mismatch')
         pending.append((p,h,e['before'],before))
     for p,h,expected,before in reversed(pending):
         if h==expected: continue
+        now=read(p) if p.exists() else None
+        if (None if now is None else digest(now))!=h: raise RuntimeError(f'Concurrent rollback conflict: {p}; backups retained')
         if before is None: p.unlink()
         else: sync_write(p,before,exclusive=h is None)
     record['state']='rolled_back';sync_write(journal/'journal.json',encoded(record))

@@ -33,7 +33,7 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
   let diffuse=max(dot(n,normalize(vec3<f32>(delta,light.z*0.25))),0.0);if diffuse<=0.0{continue;}
   var visible=0.0;let first=p.blockers[li*4u];let second=p.blockers[li*4u+1u];let third=p.blockers[li*4u+2u];let fourth=p.blockers[li*4u+3u];let any_blocker=(first.z>first.x&&first.w>first.y)||(second.z>second.x&&second.w>second.y)||(third.z>third.x&&third.w>third.y)||(fourth.z>fourth.x&&fourth.w>fourth.y);
   let samples=select(1u,5u,p.rotation.w>0.0);
-  if !any_blocker{visible=f32(samples);}else{let perpendicular=vec2<f32>(-delta.y,delta.x)/max(dist,0.001);for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)*0.5-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;break;}}visible+=select(1.0,0.0,hit);}}
+  if !any_blocker{visible=f32(samples);}else if samples==1u{var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,light.xy,p.blockers[li*4u+i]){hit=true;break;}}visible=select(1.0,0.0,hit);}else{let perpendicular=vec2<f32>(-delta.y,delta.x)/max(dist,0.001);for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)*0.5-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;break;}}visible+=select(1.0,0.0,hit);}}
   visible/=f32(samples);
   let attenuation=max(0.0,1.0-dist/light.z);shade+=p.light_color[li].xyz*(diffuse*attenuation*visible*light.w);
  }

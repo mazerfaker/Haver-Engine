@@ -1,3 +1,7 @@
+# Forge Engine v0.7.41 — Persistent Timeline & Async Transactions
+
+See [release notes](docs/RELEASE_0741.md). Source candidate; Windows compilation not verified. Run QUICK_CHECK.bat / QUICK_TEST.bat.
+
 # v0.7.40 — Persistent Preview, HQ Audio & Safe Transactions
 
 See [release notes](docs/RELEASE_0740.md). Run QUICK_CHECK.bat and QUICK_TEST.bat before use. Source candidate; compilation pending.
