@@ -208,3 +208,7 @@ See `docs/RELEASE_0720.md` for controls, testing and limitations. Optional recur
 ## v0.7.21 — Studio Refinement & Runtime Safety
 
 See `docs/RELEASE_0721.md`. New atlas rectangle editor, tab reordering, scene audio lifetime fixes and independent linked prefab overrides. Run `QUICK_CHECK.bat` and `QUICK_TEST.bat` before building. Source release, not yet compiled on Windows.
+
+
+## v0.7.22 — Inventory & Animation Events
+See [release notes](docs/RELEASE_0722.md). Run QUICK_CHECK.bat, QUICK_TEST.bat and RUN_INVENTORY_SCENE.bat.

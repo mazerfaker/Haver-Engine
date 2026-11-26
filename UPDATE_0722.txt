@@ -1,0 +1,1 @@
+Update from v0.7.21 only. Extract into existing root and overwrite changed files. Keep Cargo.lock and target. Back up your projects first. Run QUICK_CHECK.bat and QUICK_TEST.bat. New inventory fixture: RUN_INVENTORY_SCENE.bat.

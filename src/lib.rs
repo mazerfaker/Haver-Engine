@@ -49,11 +49,13 @@ impl Project {
         let mut ids = std::collections::HashSet::new();
         for o in &p.objects {
             if !ids.insert(o.id) || !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|x| x.is_finite()) || o.size.iter().any(|x| *x <= 0.) { return Err("Invalid object".into()); }
+            if o.motion.events.len()>256||o.motion.events.iter().any(|e|!e.time.is_finite()||e.time<0.||e.name.len()>128||e.clip.len()>128){return Err("Invalid animation events".into());}
             for a in std::iter::once(&o.animation).chain(o.clips.values()){if a.regions.len()>16384||a.regions.iter().any(|&r|!valid_region(r)){return Err("Invalid atlas region".into());}}
             if let Some(s) = &o.sprite { if !s.starts_with("assets/") || Path::new(s).components().any(|c| !matches!(c, std::path::Component::Normal(_))) { return Err("Invalid asset path".into()); } }
         }
         for o in &p.objects {if let Some(rel)=&o.production.normal_map {if !valid_asset(rel){return Err("Invalid normal map asset path".into());}}}
         for o in &p.objects {if let Some(rel)=&o.production.particle_texture{if !valid_asset(rel){return Err("Invalid particle texture asset path".into());}}}
+        if p.settings.inventory.as_ref().is_some_and(|i|!i.valid())||p.objects.iter().any(|o|o.pro.pickup.as_ref().is_some_and(|i|!i.valid())){return Err("Invalid inventory or pickup".into());}
         p.schema = 2;
         Ok(p)
     }
@@ -165,3 +167,6 @@ pub fn move_hud_widget(w:&mut Widget,delta:[f32;2],viewport:[f32;2],design:[u32;
  #[test] fn drag_stays_on_canvas(){let mut w=Widget{anchor:[0.5,0.5],size:[120.,44.],..Default::default()};move_hud_widget(&mut w,[900.,-900.],[320.,180.],[640,360]);let r=adaptive_widget(&w,[320.,180.],[640,360]);assert_eq!(r,[260.,0.,60.,22.]);}
  #[test] fn legacy_hud_mode(){let s:GameSettings=serde_json::from_str("{}").unwrap();assert!(!s.hud_canvas_groups);}
 }
+
+pub mod inventory;
+pub use inventory::{Inventory,ItemStack};

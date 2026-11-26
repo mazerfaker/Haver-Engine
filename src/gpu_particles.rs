@@ -23,10 +23,10 @@ impl Material2d for ParticleMaterial{fn fragment_shader()->ShaderRef{DRAW.into()
 impl Material2d for QuadMaterial{fn vertex_shader()->ShaderRef{QUADS.into()}fn fragment_shader()->ShaderRef{QUADS.into()}fn alpha_mode(&self)->AlphaMode2d{AlphaMode2d::Blend}}
 /// A bounded mesh of independent quads. No per-pixel iteration over the storage buffer.
 fn quad_mesh(n:usize)->Mesh {
- let n=n.clamp(1,256);let mut positions=Vec::with_capacity(n*6);let mut uv=Vec::with_capacity(n*6);
+ let n=n.clamp(1,256);let mut positions:Vec<[f32;3]>=Vec::with_capacity(n*4);let mut uv:Vec<[f32;2]>=Vec::with_capacity(n*4);let mut indices=Vec::with_capacity(n*6);
  // CCW triangles in local XY; UV.y is downwards. Encoded x identifies the slot.
- for i in 0..n {for (x,y,u,v) in [(-0.5,-0.5,0.,1.),(0.5,-0.5,1.,1.),(0.5,0.5,1.,0.),(-0.5,-0.5,0.,1.),(0.5,0.5,1.,0.),(-0.5,0.5,0.,0.)]{positions.push([x,y,0.]);uv.push([2.*i as f32+u,v]);}}
- Mesh::new(PrimitiveTopology::TriangleList,RenderAssetUsages::default()).with_inserted_attribute(Mesh::ATTRIBUTE_POSITION,positions).with_inserted_attribute(Mesh::ATTRIBUTE_UV_0,uv)
+ for i in 0..n {for (x,y,u,v) in [(-0.5,-0.5,0.,1.),(0.5,-0.5,1.,1.),(0.5,0.5,1.,0.),(-0.5,0.5,0.,0.)]{positions.push([x,y,0.]);uv.push([2.*i as f32+u,v]);}let b=(i*4) as u16;indices.extend([b,b+1,b+2,b,b+2,b+3]);}
+ Mesh::new(PrimitiveTopology::TriangleList,RenderAssetUsages::default()).with_inserted_attribute(Mesh::ATTRIBUTE_POSITION,positions).with_inserted_attribute(Mesh::ATTRIBUTE_UV_0,uv).with_inserted_indices(bevy::render::mesh::Indices::U16(indices))
 }
 #[derive(Debug,Hash,PartialEq,Eq,Clone,RenderLabel)] struct Simulate;
 #[derive(Resource)] struct Pipeline{layout:BindGroupLayout,id:CachedComputePipelineId}
@@ -76,3 +76,5 @@ impl ParticleDraw<'_,'_>{pub fn sync(&mut self,p:&Project,root:Option<&Path>,dt:
 #[cfg(test)] mod tests{use super::*;#[test]fn bounded(){let mut p=Project::default();p.settings.gpu_particles=true;let mut e=Emitter::default();e.rate=200.;e.lifetime=10.;assert_eq!(count(&e),128);for i in 0..20{let mut o=crate::Object::new(&format!("e{i}"),[0.;2],[16.;2],[255;4]);o.pro.emitter=Some(e.clone());p.objects.push(o);}assert_eq!(selected(&p).len(),MAX_EMITTERS);p.isometric=true;assert!(selected(&p).is_empty());}}
 
 #[cfg(test)] mod budget_tests{use super::*;#[test]fn optional_budget(){let mut e=Emitter::default();e.rate=200.;e.lifetime=2.;assert_eq!(count_with_limit(&e,128),128);assert_eq!(count_with_limit(&e,256),256);e.velocity=[400.,400.];assert_eq!(count_with_limit(&e,256),128);assert_eq!(Project::default().settings.gpu_particle_limit,128);}}
+
+#[cfg(test)]mod index_tests{use super::*;#[test]fn indexed_quad_counts(){let m=quad_mesh(128);assert_eq!(m.count_vertices(),512);assert_eq!(m.indices().unwrap().len(),768);}}

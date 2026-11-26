@@ -24,3 +24,18 @@ pub fn transition_clip(o:&mut Object,input:[f32;2],elapsed:f32)->bool {
 /// Sample inside a frame, avoiding floating-point rounding on a frame boundary.
 pub fn frame_sample_time(a:&Animation,index:u32)->f32{let i=index.min(clip_frame_count(a)-1);let start=frame_start(a,i);start+(frame_start(a,i+1)-start)*0.5}
 #[cfg(test)]mod sample_tests{use super::*;#[test]fn sample_each_variable_frame(){let a=Animation{columns:4,frames:3,start:1,durations:vec![123,251,73],..Default::default()};for i in 0..3{assert_eq!(a.frame(frame_sample_time(&a,i)),i+1);}}}
+
+#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)]
+#[serde(default)]
+pub struct AnimationEvent{pub clip:String,pub time:f32,pub name:String}
+/// Crossed event markers. Handles looping and skipped frames; initial markers include t=0.
+pub fn crossed_events(o:&Object,previous:f32,now:f32,restarted:bool)->Vec<String>{
+ if !now.is_finite()||!previous.is_finite()||now<0.||(!restarted&&now<=previous){return Vec::new();}
+ let duration=frame_start(&o.animation,clip_frame_count(&o.animation));if !duration.is_finite()||duration<=0.{return Vec::new();}
+ let from=if restarted{-0.000001}else{previous.max(0.)};let mut result=Vec::new();for e in o.motion.events.iter().take(256){if e.clip!=o.clip_name||e.name.trim().is_empty()||e.name.len()>128||!e.time.is_finite()||e.time<0.||e.time>=duration{continue;}
+ let first=if o.animation.looping{(((from-e.time)/duration).floor() as i64).saturating_add(1).max(0)}else{0};let last=if o.animation.looping{(((now-e.time)/duration).floor() as i64).max(-1)}else{0};for k in first..=last.min(first.saturating_add(15)){let t=e.time+k as f32*duration;if t>from&&t<=now{result.push((t,e.name.clone()));}}}
+ result.sort_by(|a,b|a.0.total_cmp(&b.0));result.into_iter().take(64).map(|(_,name)|name).collect()
+}
+#[cfg(test)]mod event_tests{use super::*;#[test]fn loops_and_start(){let mut o=Object::new("a",[0.;2],[1.;2],[255;4]);o.animation.fps=1.;o.motion.events=vec![AnimationEvent{clip:o.clip_name.clone(),time:0.,name:"start".into()},AnimationEvent{clip:o.clip_name.clone(),time:0.5,name:"hit".into()}];assert_eq!(crossed_events(&o,0.,0.1,true),vec!["start"]);assert_eq!(crossed_events(&o,0.4,1.1,false),vec!["hit","start"]);o.animation.looping=false;assert!(crossed_events(&o,1.1,2.1,false).is_empty());}}
+
+#[cfg(test)]mod event_runtime_tests{use super::*;#[test]fn simulation_emits_once(){let mut p=crate::Project::default();let o=p.objects.iter_mut().find(|o|o.player).unwrap();o.animation.fps=1.;o.motion.events.push(AnimationEvent{clip:o.clip_name.clone(),time:0.02,name:"cue".into()});let mut sim=crate::Simulation::default();for _ in 0..3{sim.step(&mut p,0.03,[0.;2]);}assert_eq!(sim.events.iter().filter(|s|s.ends_with(": cue")).count(),1);}}
