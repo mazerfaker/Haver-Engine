@@ -1,3 +1,7 @@
+# v0.7.40 — Persistent Preview, HQ Audio & Safe Transactions
+
+See [release notes](docs/RELEASE_0740.md). Run QUICK_CHECK.bat and QUICK_TEST.bat before use. Source candidate; compilation pending.
+
 # v0.7.39 — Float32 Audio & Asset Transactions
 
 See [release notes](docs/RELEASE_0739.md) for changes, offline relocation usage and limitations. Source candidate; Rust compilation pending.

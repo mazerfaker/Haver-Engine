@@ -77,7 +77,7 @@ def plan(root, old, new, allow_dynamic=False):
             if total>MAX_TOTAL: raise ValueError('Scan exceeds 256 MiB')
             obj=json_read(raw)
             # Only documents owned by this root, plus generated atlas sidecars.
-            known=(name.endswith('.forge.json') and p.parent==root) or (name.endswith('.prefab.json') and rel.startswith('prefabs/')) or (name.endswith('.atlas.json') and rel.startswith('assets/'))
+            known=(name.endswith('.forge.json') and p.parent==root) or (name.endswith('.prefab.json') and rel.startswith('prefabs/')) or ((name.endswith('.atlas.json') or re.fullmatch(r'atlas-state-[0-9a-fA-F-]{36}\.json',name)) and rel.startswith('assets/'))
             if not known:
                 if old.casefold() in json.dumps(obj,ensure_ascii=False).replace('\\\\','/').casefold(): raise ValueError(f'Unrecognized JSON reference: {rel}')
                 continue
@@ -110,16 +110,31 @@ def sync_write(path,data,exclusive=False):
     finally:
         if os.path.exists(tmp): os.unlink(tmp)
 
-def apply(root,old,new,allow_dynamic=False,fail_after=None):
+def plan_digest(old,new,asset,changes,side,warnings):
+    # Deterministic approval fingerprint; a changed asset or rewritten document invalidates approval.
+    summary=[old,new,digest(asset),sorted((rel,digest(a),digest(b)) for rel,a,b in changes),None if side is None else (side[0],side[1],digest(side[2]),digest(side[3])),sorted(warnings)]
+    return digest(encoded(summary))
+
+def apply(root,old,new,allow_dynamic=False,fail_after=None,expected_plan=None):
     root,asset,changes,side,warnings=plan(root,old,new,allow_dynamic)
-    journal=root/('.forge-relocation-'+uuid.uuid4().hex); journal.mkdir()
-    # Record every before/after byte sequence before touching project files.
+    if expected_plan is not None and expected_plan!=plan_digest(old,new,asset,changes,side,warnings): raise RuntimeError('Relocation plan changed after approval; run dry run again')
     ops=[(new,None,asset)]+[(rel,a,b) for rel,a,b in changes]
     if side: ops.extend([(side[1],None,side[3]),(side[0],side[2],None)])
     for cache in sorted(CACHE):
         p=checked(root,cache)
         if p.exists(): ops.append((cache,read(p,MAX_DOC),None))
     ops.append((old,asset,None))  # remove original last
+    return commit_ops(root,ops,fail_after)
+
+def commit_ops(root,ops,fail_after=None):
+    # Shared transaction journal for asset moves and prefab subtree transfers.
+    root=root.resolve(strict=True)
+    if len({rel.casefold() for rel,_,_ in ops})!=len(ops): raise ValueError('Duplicate transaction path')
+    for rel,before,after in ops:
+        p=checked(root,rel); current=read(p) if p.exists() else None
+        if current!=before: raise RuntimeError(f'Concurrent change: {rel}')
+        if after is not None and len(after)>MAX_FILE: raise ValueError('Transaction output too large')
+    journal=root/('.forge-relocation-'+uuid.uuid4().hex); journal.mkdir()
     entries=[]
     for i,(rel,before,after) in enumerate(ops):
         for tag,data in [('before',before),('after',after)]:
@@ -158,12 +173,13 @@ def rollback(root,journal):
     record['state']='rolled_back';sync_write(journal/'journal.json',encoded(record))
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('root',type=Path);p.add_argument('old',nargs='?');p.add_argument('new',nargs='?');p.add_argument('--apply',action='store_true');p.add_argument('--allow-dynamic',action='store_true');p.add_argument('--rollback',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('root',type=Path);p.add_argument('old',nargs='?');p.add_argument('new',nargs='?');p.add_argument('--apply',action='store_true');p.add_argument('--allow-dynamic',action='store_true');p.add_argument('--rollback',type=Path);p.add_argument('--expect-plan');a=p.parse_args()
     if a.rollback: rollback(a.root,a.rollback);print('Rollback complete');return
     if not a.old or not a.new: p.error('old and new asset paths are required')
-    _,_,changes,side,warnings=plan(a.root,a.old,a.new,a.allow_dynamic)
+    _,asset,changes,side,warnings=plan(a.root,a.old,a.new,a.allow_dynamic)
+    print("Plan SHA256:",plan_digest(a.old,a.new,asset,changes,side,warnings))
     print('Documents:',*[c[0] for c in changes],sep='\n  ');print('Atlas sidecar:',bool(side));print('Dynamic references reviewed/acknowledged:',len(warnings))
-    if a.apply: print('Committed. Recovery journal:',apply(a.root,a.old,a.new,a.allow_dynamic))
+    if a.apply: print('Committed. Recovery journal:',apply(a.root,a.old,a.new,a.allow_dynamic,expected_plan=a.expect_plan))
     else: print('Dry run only. Close the editor and repeat with --apply to commit.')
 if __name__=='__main__':
     try: main()

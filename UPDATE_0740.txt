@@ -1,0 +1,5 @@
+Forge Engine v0.7.39 -> v0.7.40
+Extract this update into the existing ForgeEngine-v0.7.39 folder, overwrite changed files.
+Do not delete Cargo.lock or target. The quick-check script migrates the root package version only.
+No new Cargo dependencies. Read docs/RELEASE_0740.md before using file transactions.
+Run QUICK_CHECK.bat, then QUICK_TEST.bat. No Windows compilation was performed here.
