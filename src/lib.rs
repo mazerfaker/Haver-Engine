@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Object {
+    #[serde(default)] pub production: ProductionObject,
     #[serde(default)] pub pro: ProComponents,
     pub id: Uuid,
     #[serde(default)] pub material: PhysicsMaterial,
@@ -28,7 +29,7 @@ pub struct Object {
 }
 impl Object {
     pub fn new(name: &str, position: [f32; 2], size: [f32; 2], color: [u8; 4]) -> Self {
-        Self { pro: ProComponents::default(), material: PhysicsMaterial::default(), tile: None, motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
+        Self { production: ProductionObject::default(), pro: ProComponents::default(), material: PhysicsMaterial::default(), tile: None, motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -83,3 +84,6 @@ pub use gameplay::*;
 
 mod pro_gameplay;
 pub use pro_gameplay::*;
+
+mod production;
+pub use production::*;

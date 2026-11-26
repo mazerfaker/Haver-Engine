@@ -128,3 +128,6 @@ Studio menu: Dark, Light and OLED theme; accent picker; persistent settings; lef
 - Debug: selected object's runtime transform, body, clip, recent trigger-enter events and Lua errors. No arbitrary Lua globals inspector or breakpoint debugger.
 - Profiler: process resident memory using sysinfo; recent egui frame intervals, not GPU timestamps. New vector Forge mark in toolbar and branding/forge.svg. Not a complete icon system. New primary controls bilingual; inherited UI remains partially localized.
 - Static fixes: avoid inserting hitboxes simply by opening inspector; hide preferences unless requested; tighten viewport sprite query exclusions. No compiler or Windows toolchain in build environment; dependency resolution, compilation and runtime are unverified. `CHECK_WINDOWS.bat` and CI remain the validation path.
+
+## v0.6 Production Tools
+See [implementation status and limitations](docs/PRODUCTION_TOOLS.md). Use Production menu for build resolution, input, joints; object inspector for NPC navigation and particle texture. Source-only experimental release, compilation not verified.
