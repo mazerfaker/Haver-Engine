@@ -2,7 +2,7 @@
 use crate::{Animation,Object};
 use serde::{Deserialize,Serialize};
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,Serialize,Deserialize)]
-pub enum ClipCondition { #[default] Idle, Moving, JumpInput, Finished, VariablePositive }
+pub enum ClipCondition { #[default] Idle, Moving, JumpInput, Finished, VariablePositive, VariableNonPositive }
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)]
 #[serde(default)]
 pub struct ClipTransition { pub from:String,pub to:String,pub condition:ClipCondition,pub variable:String }
@@ -12,7 +12,7 @@ pub fn step_frame(a:&Animation,t:f32,delta:i32)->f32 {let n=clip_frame_count(a);
 pub fn set_frame_duration(a:&mut Animation,i:u32,ms:u32)->bool {let n=clip_frame_count(a);if n>16384||i>=n{return false;}if a.durations.len()!=n as usize||a.durations.contains(&0){a.durations=vec![(1000./a.fps.max(1.)).round().max(1.) as u32;n as usize];}a.durations[i as usize]=ms.clamp(1,60000);true}
 pub fn transition_clip(o:&mut Object,input:[f32;2],elapsed:f32)->bool {
  let current=o.clip_name.as_str();let age=crate::animation_time(o,elapsed);let moving=input[0].abs()>0.01||input[1].abs()>0.01;
- let target=o.motion.transitions.iter().find(|r| (r.from==current||r.from=="*")&&r.to!=current&&o.clips.contains_key(&r.to)&&match r.condition{ClipCondition::Idle=>!moving,ClipCondition::Moving=>moving,ClipCondition::JumpInput=>input[1]>0.,ClipCondition::Finished=>!o.animation.looping&&age>=frame_start(&o.animation,clip_frame_count(&o.animation)),ClipCondition::VariablePositive=>!r.variable.is_empty()&&o.pro.variables.get(&r.variable).is_some_and(|v|*v>0.)}).map(|r|r.to.clone());
+ let target=o.motion.transitions.iter().find(|r| (r.from==current||r.from=="*")&&r.to!=current&&o.clips.contains_key(&r.to)&&match r.condition{ClipCondition::Idle=>!moving,ClipCondition::Moving=>moving,ClipCondition::JumpInput=>input[1]>0.,ClipCondition::Finished=>!o.animation.looping&&age>=frame_start(&o.animation,clip_frame_count(&o.animation)),ClipCondition::VariablePositive=>!r.variable.is_empty()&&o.pro.variables.get(&r.variable).is_some_and(|v|*v>0.),ClipCondition::VariableNonPositive=>!r.variable.is_empty()&&o.pro.variables.get(&r.variable).copied().unwrap_or(0.)<=0.}).map(|r|r.to.clone());
  if let Some(target)=target {o.animation=o.clips[&target].clone();o.clip_name=target;o.pro.variables.insert("forge_clip_started".into(),elapsed);true}else{false}
 }
 #[cfg(test)]mod tests {use super::*;#[test]fn variable_timing(){let mut a=Animation{columns:3,frames:3,..Default::default()};assert!(set_frame_duration(&mut a,0,200));assert!(set_frame_duration(&mut a,1,500));assert!((frame_start(&a,2)-0.7).abs()<0.001);assert!((step_frame(&a,0.21,1)-0.7).abs()<0.001);}

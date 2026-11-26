@@ -1,0 +1,4 @@
+Forge Engine v0.7.22 -> v0.7.23
+Extract into existing source root, overwrite matching files, keep Cargo.lock and target.
+Run QUICK_CHECK.bat, QUICK_TEST.bat, QUICK_BUILD.bat; then RUN_INVENTORY_PRO_SCENE.bat.
+Do not assume a new stable release until Windows checks pass.

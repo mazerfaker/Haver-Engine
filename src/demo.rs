@@ -2,6 +2,7 @@
 use crate::{Project, Simulation};
 use std::collections::HashSet;
 use uuid::Uuid;
+#[derive(Clone,Debug,serde::Serialize,serde::Deserialize)]
 pub struct DemoSession { collected: HashSet<Uuid>, pub won: bool, pub deaths: u32, pub health: u8, pub cooldown: f32, pub attack_cooldown: f32, pub facing: f32 }
 impl Default for DemoSession { fn default()->Self { Self{collected:HashSet::new(),won:false,deaths:0,health:3,cooldown:0.,attack_cooldown:0.,facing:1.} } }
 impl DemoSession {

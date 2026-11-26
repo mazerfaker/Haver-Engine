@@ -1,0 +1,7 @@
+Forge Engine v0.7.23 static QA
+PASS: 17 Python tests (2 packaging + 3 atlas/GPU/lock + 3 inventory/events/indexed quad + 3 v0.7.23 + 2 GPU fixture + 2 studio fixture + 2 UI fixture).
+PASS: 4 campaign scenes, 214 objects.
+PASS: 48 previous example files and 9 WGSL files byte-identical.
+PASS: Cargo dependencies unchanged.
+PASS: source/patch ZIP integrity and overlay reproduction (verified by packaging script).
+NOT RUN: Rust compiler, Rust tests, Windows UI/runtime, WGSL execution, performance measurements. No cargo/rustc available.

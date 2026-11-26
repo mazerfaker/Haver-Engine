@@ -11,9 +11,12 @@ pub fn advance(p:&mut Project,dt:f32){for o in &mut p.objects {if let Some(c)=&m
 fn overlaps(a:[f32;2],half:[f32;2],o:&Object)->bool {(0..2).all(|i|(a[i]-o.position[i]).abs()<=half[i]+o.size[i]*0.5)}
 /// One hit per invocation; deterministic nearest target, team filtering, directional hitbox.
 pub fn strike(p:&mut Project,attacker:Uuid,direction:f32)->Option<Uuid>{
+ strike_with_bonus(p,attacker,direction,0.)
+}
+pub fn strike_with_bonus(p:&mut Project,attacker:Uuid,direction:f32,bonus:f32)->Option<Uuid>{
  let a=p.objects.iter_mut().find(|o|o.id==attacker)?;let c=a.pro.combat.as_mut()?;
  if c.health<=0.||c.remaining>0.||!direction.is_finite()||direction.abs()<0.001{return None;}
- let dir=direction.signum();let pos=a.position;let reach=c.reach.map(|v|v.clamp(0.,10000.));let center=[pos[0]+dir*reach[0]*0.5,pos[1]];let half=[reach[0]*0.5,reach[1]*0.5];let team=c.team;let damage=c.damage.max(0.);let knock=c.knockback.max(0.);c.remaining=c.cooldown.max(0.01);
+ let dir=direction.signum();let pos=a.position;let reach=c.reach.map(|v|v.clamp(0.,10000.));let center=[pos[0]+dir*reach[0]*0.5,pos[1]];let half=[reach[0]*0.5,reach[1]*0.5];let team=c.team;let damage=(c.damage+if bonus.is_finite(){bonus.clamp(0.,1000.)}else{0.}).max(0.);let knock=c.knockback.max(0.);c.remaining=c.cooldown.max(0.01);
  let target=p.objects.iter_mut().filter(|o|o.id!=attacker&&o.color[3]>0&&o.pro.combat.as_ref().is_some_and(|c|c.health>0.&&c.team!=team)&&overlaps(center,half,o)).min_by(|a,b| (a.position[0]-pos[0]).abs().total_cmp(&(b.position[0]-pos[0]).abs()).then_with(||a.id.cmp(&b.id)))?;
  let c=target.pro.combat.as_mut()?;c.health=(c.health-damage).max(0.);if c.health==0.{target.color[3]=0;target.body=crate::Body::None;target.pro.light=None;}
  let alive=c.health>0.;let id=target.id;let mut proposed=target.clone();proposed.position[0]+=dir*knock;

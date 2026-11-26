@@ -212,3 +212,6 @@ See `docs/RELEASE_0721.md`. New atlas rectangle editor, tab reordering, scene au
 
 ## v0.7.22 — Inventory & Animation Events
 See [release notes](docs/RELEASE_0722.md). Run QUICK_CHECK.bat, QUICK_TEST.bat and RUN_INVENTORY_SCENE.bat.
+
+## v0.7.23 — Inventory PRO & Checkpoints
+See [release notes and Windows checks](docs/RELEASE_0723.md). `RUN_INVENTORY_PRO_SCENE.bat` exercises item effects, equipment and checkpoints (F5/F9). The checkpoint lives beside the entry scene, not inside the authored scene file. The new source is not yet a confirmed compiled release; preserve your previous working version.

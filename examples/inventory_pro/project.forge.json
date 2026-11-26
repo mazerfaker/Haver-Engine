@@ -1,0 +1,243 @@
+{
+  "schema": 2,
+  "name": "Forge Inventory PRO QA \u2014 use, equip, F5/F9",
+  "objects": [
+    {
+      "id": "3eee90d4-2cd8-5a82-924a-caef8d914af7",
+      "name": "Player",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        230,
+        160,
+        255
+      ],
+      "sprite": null,
+      "player": true,
+      "body": "None",
+      "pro": {
+        "combat": {
+          "health": 1,
+          "max_health": 5,
+          "team": 0
+        },
+        "variables": {
+          "energy": 0
+        }
+      },
+      "clip_name": "Idle",
+      "animation": {
+        "columns": 1,
+        "rows": 1,
+        "frames": 1,
+        "fps": 2,
+        "looping": true
+      },
+      "clips": {},
+      "motion": {
+        "events": [
+          {
+            "clip": "Idle",
+            "time": 0.2,
+            "name": "pulse"
+          }
+        ]
+      },
+      "script": "",
+      "graph": {
+        "nodes": [],
+        "edges": []
+      },
+      "production": {},
+      "parent": null
+    },
+    {
+      "id": "a59f033e-b996-50db-ad18-349e389713c0",
+      "name": "Ground",
+      "position": [
+        0,
+        -135
+      ],
+      "size": [
+        640,
+        20
+      ],
+      "rotation": 0,
+      "layer": 1,
+      "color": [
+        120,
+        130,
+        150,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static",
+      "production": {},
+      "pro": {},
+      "motion": {},
+      "parent": null,
+      "animation": {
+        "columns": 1,
+        "rows": 1,
+        "frames": 1,
+        "fps": 1,
+        "looping": true
+      },
+      "clips": {}
+    },
+    {
+      "id": "7838513c-beaa-55e3-acbd-ac219c32d311",
+      "name": "Energy cell",
+      "position": [
+        55,
+        0
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        244,
+        190,
+        72,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "None",
+      "pro": {
+        "pickup": {
+          "item": "Energy cell",
+          "count": 3
+        }
+      }
+    },
+    {
+      "id": "37e83b35-5226-593a-aed8-dd295680437e",
+      "name": "Energy cell",
+      "position": [
+        150,
+        0
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        244,
+        190,
+        72,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "None",
+      "pro": {
+        "pickup": {
+          "item": "Energy cell",
+          "count": 6
+        }
+      }
+    },
+    {
+      "id": "c6f1f8d4-6939-5c06-92fa-982252d99611",
+      "name": "Medkit",
+      "position": [
+        -60,
+        0
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        99,
+        200,
+        156,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "None",
+      "pro": {
+        "pickup": {
+          "item": "Medkit",
+          "count": 1
+        }
+      }
+    }
+  ],
+  "isometric": false,
+  "settings": {
+    "inventory": {
+      "slots": [
+        {
+          "item": "Energy cell",
+          "count": 2
+        },
+        {
+          "item": "Medkit",
+          "count": 2
+        },
+        {
+          "item": "Training sword",
+          "count": 1
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "collected": []
+    },
+    "item_catalog": {
+      "Energy cell": {
+        "variable": "energy",
+        "variable_delta": 0.2
+      },
+      "Medkit": {
+        "heal": 2
+      },
+      "Training sword": {
+        "equip_slot": "weapon",
+        "damage_bonus": 2
+      }
+    },
+    "widgets": [
+      {
+        "text": "energy",
+        "action": "progress",
+        "anchor": [
+          0.04,
+          0.04
+        ],
+        "size": [
+          200,
+          24
+        ]
+      }
+    ],
+    "hud_canvas_groups": true
+  }
+}

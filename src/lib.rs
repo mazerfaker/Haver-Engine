@@ -45,6 +45,12 @@ impl Default for Project {
 impl Project {
     pub fn load(path: &Path) -> Result<Self, String> {
         let mut p: Self = serde_json::from_slice(&fs::read(path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+        p.validate_data()?;
+        p.schema = 2;
+        Ok(p)
+    }
+    pub fn validate_data(&self) -> Result<(), String> {
+        let p=self;
         if p.schema != 1 && p.schema != 2 { return Err("Unsupported project schema".into()); }
         let mut ids = std::collections::HashSet::new();
         for o in &p.objects {
@@ -56,8 +62,9 @@ impl Project {
         for o in &p.objects {if let Some(rel)=&o.production.normal_map {if !valid_asset(rel){return Err("Invalid normal map asset path".into());}}}
         for o in &p.objects {if let Some(rel)=&o.production.particle_texture{if !valid_asset(rel){return Err("Invalid particle texture asset path".into());}}}
         if p.settings.inventory.as_ref().is_some_and(|i|!i.valid())||p.objects.iter().any(|o|o.pro.pickup.as_ref().is_some_and(|i|!i.valid())){return Err("Invalid inventory or pickup".into());}
-        p.schema = 2;
-        Ok(p)
+        if p.settings.item_catalog.len()>512||p.settings.item_catalog.iter().any(|(k,v)|k.trim().is_empty()||k.len()>128||!v.valid()){return Err("Invalid item catalog".into());}
+        if p.settings.inventory.as_ref().is_some_and(|i|!i.equipment_valid(&p.settings.item_catalog)){return Err("Invalid initial equipment".into());}
+        Ok(())
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
         fs::write(path, serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
@@ -169,4 +176,5 @@ pub fn move_hud_widget(w:&mut Widget,delta:[f32;2],viewport:[f32;2],design:[u32;
 }
 
 pub mod inventory;
-pub use inventory::{Inventory,ItemStack};
+pub use inventory::{Inventory,ItemStack,ItemDefinition};
+pub mod save_game;
