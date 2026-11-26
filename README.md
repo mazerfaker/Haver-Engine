@@ -175,3 +175,11 @@ See [release notes](docs/RELEASE_0712.md). Experimental source; no compiled EXE.
 
 ## v0.7.13 — Professional Editor & Engine
 See [release notes](docs/RELEASE_0713.md). Added top docking and draggable vector headers, distance-based SFX attenuation, named HUD groups, CPU viewport culling and optional GPU lighting lab (`GPU_LIGHTING_LAB.bat`). Source-only, compilation unverified. Auto Rig excluded.
+
+## v0.7.14 — Runtime & Workspace maintenance
+- Asset Browser: pages of 48 thumbnails, at most four decodes per UI frame, page-scoped thumbnail cache.
+- HUD: slash-separated container paths (e.g. HUD/Inventory/Equipment) in Player; maximum nesting 8.
+- Mixer: one source index per mixer update and avoid redundant volume writes.
+- Workspace: explicit Save dock command; existing four docking edges and floating panels retained.
+- GPU lab and CPU fallback unchanged. No Auto Rig.
+- Windows compilation and graphical testing remain unverified; see docs/RELEASE_0714.md.

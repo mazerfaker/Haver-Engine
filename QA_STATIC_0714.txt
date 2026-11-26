@@ -1,0 +1,14 @@
+PASS JSON and Cargo.toml parsing
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+
+PASS 24 example files unchanged byte-for-byte
+NOT RUN: Rust compilation, Rust tests, shader compilation, Windows GUI and performance measurements (cargo unavailable).
