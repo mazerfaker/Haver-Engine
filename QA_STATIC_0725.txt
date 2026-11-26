@@ -1,0 +1,11 @@
+Forge Engine v0.7.25 static QA
+24 Python tests PASS (22 validation + 2 asset packaging)
+Signal Lost: 4/4 levels, 214 objects
+Old example files unchanged: 55/55
+Old WGSL files unchanged: 9/9
+JSON / TOML parse: PASS
+Dependency declarations and Cargo profiles unchanged; two new opt-in feature flags
+Rust compiler not installed; Rust tests, GPU and audio labs, Windows executable not verified.
+Full source files: 225
+Patch files: 37
+Patch byte-for-byte reconstruction: PASS

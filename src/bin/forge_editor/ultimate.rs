@@ -15,6 +15,7 @@ pub(super) fn prefab_library(ui:&mut egui::Ui,e:&mut Editor){
  ui.collapsing("Prefab library / Бібліотека",|ui|{
   linked_ui(ui,e);
   let Some(root)=e.path.as_ref().and_then(|p|p.parent()).map(|p|p.join("prefabs"))else{ui.label("Save project first");return;};
+  composer_ui(ui,e,&root);
   if ui.button("Save selected subtree to library").clicked(){if let Some(id)=e.selected{let v=forge_engine::prefab(&e.project,id);let result=(||->Result<(),String>{forge_engine::validate_prefab(&v)?;std::fs::create_dir_all(&root).map_err(|x|x.to_string())?;let path=root.join(format!("{id}.prefab.json"));std::fs::write(path,serde_json::to_vec_pretty(&v).map_err(|x|x.to_string())?).map_err(|x|x.to_string())})();e.status=result.map(|_|"Prefab saved".into()).unwrap_or_else(|x|x);}}
   if let Ok(entries)=std::fs::read_dir(&root){let mut paths:Vec<_>=entries.flatten().map(|x|x.path()).filter(|p|p.file_name().and_then(|n|n.to_str()).is_some_and(|n|n.ends_with(".prefab.json"))).take(256).collect();paths.sort();for path in paths{if ui.button(path.file_name().unwrap_or_default().to_string_lossy().into_owned()).clicked(){let result=forge_engine::load_library_prefab(&root,path.file_name().and_then(|n|n.to_str()).unwrap_or("")).and_then(|v|forge_engine::instantiate_linked(v,path.file_name().and_then(|n|n.to_str()).unwrap_or(""),[e.tools.snap,0.]));match result{Ok(v)=>{e.selected=v.iter().find(|o|o.parent.is_none()).map(|o|o.id);e.project.objects.extend(v);},Err(err)=>e.status=err}}}}
  });
@@ -32,3 +33,16 @@ fn linked_ui(ui:&mut egui::Ui,e:&mut Editor){
  ui.horizontal_wrapped(|ui|{let refresh=ui.button("Refresh linked instance").clicked();let grow=ui.button("Refresh + new children").clicked();let all=ui.button("Refresh all instances of this prefab").clicked();if refresh||grow||all{let result=(||->Result<usize,String>{if !forge_engine::valid_prefab_file(&link.file){return Err("Invalid library filename".into());}let root=e.path.as_ref().and_then(|p|p.parent()).ok_or("Save project first")?;let objects=forge_engine::load_library_prefab(&root.join("prefabs"),&link.file)?;if all{forge_engine::refresh_all_linked(&mut e.project,&link.file,&objects)}else if grow{forge_engine::refresh_linked_additions(&mut e.project,link.instance,&objects)}else{forge_engine::refresh_linked(&mut e.project,link.instance,&objects)}})();e.status=result.map(|n|format!("Refreshed {n} linked objects")).unwrap_or_else(|x|x);}
  if ui.button("Unlink instance").clicked(){for o in &mut e.project.objects{if o.prefab_link.as_ref().is_some_and(|l|l.instance==link.instance){o.prefab_link=None;}}}});
 }
+
+#[derive(Clone,Default)]struct ComposerDraft{file:String,refs:Vec<forge_engine::NestedPrefab>,include_selection:bool}
+fn composer_ui(ui:&mut egui::Ui,e:&mut Editor,root:&std::path::Path){ui.collapsing("Visual Prefab Composer / Композиція",|ui|{
+ let key=ui.id().with(("composer25",root));let mut draft=ui.ctx().data(|d|d.get_temp::<ComposerDraft>(key)).unwrap_or_default();
+ if draft.file.is_empty(){draft.file="composite.prefab.json".into();}
+ ui.horizontal(|ui|{ui.label("New file");ui.text_edit_singleline(&mut draft.file);});ui.checkbox(&mut draft.include_selection,"Include selected subtree as parent");
+ let parent=if draft.include_selection{e.selected.filter(|id|e.project.objects.iter().any(|o|o.id==*id))}else{None};
+ let mut files:Vec<String>=std::fs::read_dir(root).ok().into_iter().flatten().flatten().filter_map(|e|e.file_name().into_string().ok()).filter(|n|forge_engine::valid_prefab_file(n)).take(256).collect();files.sort();
+ ui.menu_button("+ External prefab",|ui|{for f in &files{if ui.button(f).clicked()&&draft.refs.len()<128{draft.refs.push(forge_engine::NestedPrefab{id:uuid::Uuid::new_v4(),file:f.clone(),parent:None,offset:[0.;2]});}}});
+ let mut remove=None;for (i,n) in draft.refs.iter_mut().enumerate(){ui.push_id(n.id,|ui|{ui.horizontal_wrapped(|ui|{ui.label(format!("↳ {}",n.file));for v in &mut n.offset{ui.add(egui::DragValue::new(v).speed(1.));}if ui.small_button("Remove").clicked(){remove=Some(i);}});});}if let Some(i)=remove{draft.refs.remove(i);}
+ if ui.add_enabled(!draft.refs.is_empty()&&(!draft.include_selection||parent.is_some()),egui::Button::new("Create composite (new file)")).clicked(){let objects=parent.map(|id|forge_engine::prefab(&e.project,id)).unwrap_or_default();let mut refs=draft.refs.clone();for n in &mut refs{n.parent=parent;}match forge_engine::create_composite_prefab(root,&draft.file,&objects,&refs){Ok(n)=>{e.status=format!("Composite created: {n} objects");draft.refs.clear();},Err(err)=>e.status=err}}
+ ui.small("References remain external. Existing files are never overwritten; cyclic and invalid references are rejected.");ui.ctx().data_mut(|d|d.insert_temp(key,draft));
+});}

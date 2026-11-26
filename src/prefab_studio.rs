@@ -3,13 +3,13 @@ use std::collections::{HashMap,HashSet};
 pub fn validate_prefab(objects:&[Object])->Result<(),String>{
  if objects.is_empty()||objects.len()>10000{return Err("Prefab must contain 1–10000 objects".into());}
  let map:HashMap<_,_>=objects.iter().map(|o|(o.id,o.parent)).collect();if map.len()!=objects.len(){return Err("Duplicate prefab ID".into());}
- for o in objects{if !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|v|v.is_finite())||o.size.iter().any(|v|*v<=0.){return Err("Invalid prefab transform".into());}
+ for o in objects{if !o.motion.valid_clip_keys(){return Err("Invalid clip transform channels".into());}if !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|v|v.is_finite())||o.size.iter().any(|v|*v<=0.){return Err("Invalid prefab transform".into());}
  for path in [&o.sprite,&o.production.normal_map,&o.production.particle_texture].into_iter().flatten(){if !crate::valid_asset(path){return Err("Invalid prefab asset path".into());}}
  if let Some(sound)=&o.pro.sound{if !sound.path.is_empty()&&!crate::valid_asset(&sound.path){return Err("Invalid prefab sound path".into());}}
  let mut seen=HashSet::from([o.id]);let mut parent=o.parent;while let Some(id)=parent{if !seen.insert(id){return Err("Prefab hierarchy cycle".into());}parent=*map.get(&id).ok_or("Missing prefab parent")?;}}
  Ok(())
 }
-pub fn instantiate_checked(objects:Vec<Object>,offset:[f32;2])->Result<Vec<Object>,String>{validate_prefab(&objects)?;if !offset.iter().all(|v|v.is_finite()){return Err("Invalid prefab offset".into());}let mut result=crate::instantiate(objects);for o in &mut result{for i in 0..2{o.position[i]+=offset[i];for k in &mut o.motion.keys{k.position[i]+=offset[i];}}}validate_prefab(&result)?;Ok(result)}
+pub fn instantiate_checked(objects:Vec<Object>,offset:[f32;2])->Result<Vec<Object>,String>{validate_prefab(&objects)?;if !offset.iter().all(|v|v.is_finite()){return Err("Invalid prefab offset".into());}let mut result=crate::instantiate(objects);for o in &mut result{for i in 0..2{o.position[i]+=offset[i];for k in o.motion.keys.iter_mut().chain(o.motion.clip_keys.values_mut().flatten()){k.position[i]+=offset[i];}}}validate_prefab(&result)?;Ok(result)}
 #[cfg(test)]mod tests{use super::*;#[test]fn nested_remap(){let a=Object::new("parent",[0.;2],[1.;2],[255;4]);let mut b=Object::new("child",[10.,2.],[1.;2],[255;4]);let mut c=Object::new("nested",[11.,3.],[1.;2],[255;4]);b.parent=Some(a.id);c.parent=Some(b.id);let v=instantiate_checked(vec![a.clone(),b,c],[5.,7.]).unwrap();assert_ne!(a.id,v[0].id);assert_eq!(v[1].parent,Some(v[0].id));assert_eq!(v[2].parent,Some(v[1].id));assert_eq!(v[2].position,[16.,10.]);}#[test]fn rejects_cycle(){let mut a=Object::new("a",[0.;2],[1.;2],[255;4]);a.parent=Some(a.id);assert!(validate_prefab(&[a]).is_err());}}
 
 /// Editor-only link metadata. Scenes retain materialized objects for standalone/export use.
@@ -26,7 +26,7 @@ pub fn refresh_linked(project:&mut crate::Project,instance:uuid::Uuid,source:&[O
  for old in &local {let link=old.prefab_link.as_ref().unwrap();if &link.file!=file{return Err("Mixed prefab sources in instance".into());}let parent=old.parent.and_then(|id|local_sources.get(&id).copied());if parent!=source_map[&link.source].parent{return Err("Prefab hierarchy changed; refresh refused".into());}}
  let mut replacements=Vec::new();for old in local{let link=old.prefab_link.as_ref().unwrap();let mut next=(*source_map[&link.source]).clone();next.id=old.id;next.parent=old.parent;next.position=old.position;next.rotation=old.rotation;next.size=old.size;next.prefab_link=Some(link.clone());let keep=|name:&str|link.overrides.iter().any(|s|s==name);
  if keep("appearance"){next.motion.pivot=old.motion.pivot;next.name=old.name.clone();next.sprite=old.sprite.clone();next.color=old.color;next.layer=old.layer;next.production.normal_map=old.production.normal_map.clone();}
- if keep("animation"){next.animation=old.animation.clone();next.clips=old.clips.clone();next.clip_name=old.clip_name.clone();next.motion=old.motion.clone();}else{next.motion.keys=old.motion.keys.clone();}
+ if keep("animation"){next.animation=old.animation.clone();next.clips=old.clips.clone();next.clip_name=old.clip_name.clone();next.motion=old.motion.clone();}else{next.motion.keys=old.motion.keys.clone();next.motion.clip_keys=old.motion.clip_keys.clone();}
  if keep("physics"){next.body=old.body;next.material=old.material.clone();next.pro.physics=old.pro.physics.clone();next.tile=old.tile.clone();}
  if keep("gameplay"){next.pro.pickup=old.pro.pickup.clone();next.pro.combat=old.pro.combat.clone();next.pro.light=old.pro.light.clone();next.pro.emitter=old.pro.emitter.clone();next.pro.sound=old.pro.sound.clone();next.pro.variables=old.pro.variables.clone();next.production.particle_texture=old.production.particle_texture.clone();next.production.navigation=old.production.navigation.clone();next.player=old.player;next.camera=old.camera;}
  if keep("scripts"){next.script=old.script.clone();next.graph=old.graph.clone();next.pro.graph_positions=old.pro.graph_positions.clone();}
@@ -46,7 +46,7 @@ pub fn refresh_linked_additions(project:&mut crate::Project,instance:uuid::Uuid,
  let additions=source.len()-local.len();if next.objects.len()+additions>10000{return Err("Scene object limit".into());}
  for o in &local{let s=sources[&o.prefab_link.as_ref().unwrap().source];if s.parent.and_then(|id|ids.get(&id).copied())!=o.parent && s.parent.is_some(){return Err("Existing prefab parent changed".into());}}
  let mut pending:Vec<_>=source.iter().filter(|o|!ids.contains_key(&o.id)).collect();while !pending.is_empty(){let n=pending.len();pending.retain(|s|{let parent=s.parent.and_then(|id|ids.get(&id).copied());if s.parent.is_some()&&parent.is_none(){return true;}
- let (anchor_source,anchor_local)=if let (Some(sp),Some(lp))=(s.parent,parent){(sources[&sp],next.objects.iter().find(|o|o.id==lp).unwrap())}else{(sources[&first.prefab_link.as_ref().unwrap().source],first)};let delta=[anchor_local.position[0]-anchor_source.position[0],anchor_local.position[1]-anchor_source.position[1]];let mut o=(**s).clone();o.id=uuid::Uuid::new_v4();o.parent=parent;for i in 0..2{o.position[i]+=delta[i];for k in &mut o.motion.keys{k.position[i]+=delta[i];}}o.prefab_link=Some(PrefabLink{file:file.clone(),instance,source:s.id,overrides:vec![]});ids.insert(s.id,o.id);next.objects.push(o);false});if pending.len()==n{return Err("Cannot resolve new prefab hierarchy".into());}}
+ let (anchor_source,anchor_local)=if let (Some(sp),Some(lp))=(s.parent,parent){(sources[&sp],next.objects.iter().find(|o|o.id==lp).unwrap())}else{(sources[&first.prefab_link.as_ref().unwrap().source],first)};let delta=[anchor_local.position[0]-anchor_source.position[0],anchor_local.position[1]-anchor_source.position[1]];let mut o=(**s).clone();o.id=uuid::Uuid::new_v4();o.parent=parent;for i in 0..2{o.position[i]+=delta[i];for k in o.motion.keys.iter_mut().chain(o.motion.clip_keys.values_mut().flatten()){k.position[i]+=delta[i];}}o.prefab_link=Some(PrefabLink{file:file.clone(),instance,source:s.id,overrides:vec![]});ids.insert(s.id,o.id);next.objects.push(o);false});if pending.len()==n{return Err("Cannot resolve new prefab hierarchy".into());}}
  let refreshed=refresh_linked(&mut next,instance,source)?;*project=next;Ok(refreshed)
 }
 #[cfg(test)]mod addition_tests{use super::*;#[test]fn new_nested_children(){let a=Object::new("a",[0.;2],[8.;2],[255;4]);let mut b=Object::new("b",[3.,5.],[8.;2],[255;4]);b.parent=Some(a.id);let mut c=Object::new("c",[6.,7.],[8.;2],[255;4]);c.parent=Some(b.id);let mut p=crate::Project::default();let linked=instantiate_linked(vec![a.clone()],"a.prefab.json",[10.,20.]).unwrap();let id=linked[0].id;let instance=linked[0].prefab_link.as_ref().unwrap().instance;p.objects.extend(linked);assert_eq!(refresh_linked_additions(&mut p,instance,&[a,b,c]).unwrap(),3);let b=p.objects.iter().find(|o|o.name=="b").unwrap();assert_eq!(b.parent,Some(id));assert_eq!(b.position,[13.,25.]);let c=p.objects.iter().find(|o|o.name=="c").unwrap();assert_eq!(c.parent,Some(b.id));assert_eq!(c.position,[16.,27.]);}}
@@ -59,8 +59,8 @@ pub fn refresh_all_linked(project:&mut crate::Project,file:&str,source:&[Object]
 #[derive(serde::Deserialize)]
 #[serde(untagged)]
 enum LibraryDocument { Legacy(Vec<Object>), Composite{ #[serde(default)] objects:Vec<Object>, #[serde(default)] nested:Vec<NestedPrefab> } }
-#[derive(serde::Deserialize)]
-struct NestedPrefab { id:uuid::Uuid,file:String,#[serde(default)] parent:Option<uuid::Uuid>,#[serde(default)] offset:[f32;2] }
+#[derive(Clone,Debug,serde::Serialize,serde::Deserialize)]
+pub struct NestedPrefab { pub id:uuid::Uuid,pub file:String,#[serde(default)] pub parent:Option<uuid::Uuid>,#[serde(default)] pub offset:[f32;2] }
 /// Stable source identities scoped to a nested reference. Collisions are rejected by validation.
 fn nested_id(scope:uuid::Uuid,child:uuid::Uuid)->uuid::Uuid{
  let mut a=0xcbf29ce484222325u64;let mut b=0x84222325cbf29ce4u64;
@@ -80,7 +80,7 @@ pub fn load_library_prefab(root:&std::path::Path,file:&str)->Result<Vec<Object>,
   for n in nested {if !refs.insert(n.id)||!n.offset.iter().all(|v|v.is_finite())||n.parent.is_some_and(|p|!local_ids.contains(&p)){return Err("Invalid nested reference identity, offset or parent".into());}
    let mut children=resolve(root,&n.file,stack,reads,depth+1)?;if objects.len().saturating_add(children.len())>10000{return Err("Prefab object limit".into());}
    let ids:HashMap<_,_>=children.iter().map(|o|(o.id,nested_id(n.id,o.id))).collect();
-   for o in &mut children {o.id=ids[&o.id];o.parent=o.parent.map(|p|ids[&p]).or(n.parent);o.prefab_link=None;for i in 0..2{o.position[i]+=n.offset[i];for k in &mut o.motion.keys{k.position[i]+=n.offset[i];}}}
+   for o in &mut children {o.id=ids[&o.id];o.parent=o.parent.map(|p|ids[&p]).or(n.parent);o.prefab_link=None;for i in 0..2{o.position[i]+=n.offset[i];for k in o.motion.keys.iter_mut().chain(o.motion.clip_keys.values_mut().flatten()){k.position[i]+=n.offset[i];}}}
    objects.extend(children);
   }
   stack.remove(&path);validate_prefab(&objects)?;Ok(objects)
@@ -88,3 +88,20 @@ pub fn load_library_prefab(root:&std::path::Path,file:&str)->Result<Vec<Object>,
  resolve(&root,file,&mut stack,&mut reads,0)
 }
 #[cfg(test)]mod external_tests{use super::*;#[test]fn nested_load_stable_and_cycle_safe(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let child=Object::new("child",[1.,2.],[8.;2],[255;4]);std::fs::write(root.join("child.prefab.json"),serde_json::to_vec(&vec![child]).unwrap()).unwrap();let parent=Object::new("parent",[0.;2],[8.;2],[255;4]);let doc=serde_json::json!({"objects":[parent.clone()],"nested":[{"id":uuid::Uuid::new_v4(),"file":"child.prefab.json","parent":parent.id,"offset":[4.,5.]}]});std::fs::write(root.join("a.prefab.json"),serde_json::to_vec(&doc).unwrap()).unwrap();let a=load_library_prefab(&root,"a.prefab.json").unwrap();let b=load_library_prefab(&root,"a.prefab.json").unwrap();assert_eq!(a,b);assert_eq!(a[1].parent,Some(parent.id));assert_eq!(a[1].position,[5.,7.]);let cycle=serde_json::json!({"nested":[{"id":uuid::Uuid::new_v4(),"file":"cycle.prefab.json"}]});std::fs::write(root.join("cycle.prefab.json"),serde_json::to_vec(&cycle).unwrap()).unwrap();assert!(load_library_prefab(&root,"cycle.prefab.json").is_err());std::fs::remove_dir_all(root).unwrap();}}
+
+/// Create a new composite document without overwriting any source prefab. Resolve it before accepting.
+pub fn create_composite_prefab(root:&std::path::Path,file:&str,objects:&[Object],nested:&[NestedPrefab])->Result<usize,String>{
+ use std::io::Write;
+ if !valid_prefab_file(file)||nested.is_empty()||nested.len()>128{return Err("Invalid composite filename or reference count".into());}
+ if !objects.is_empty(){validate_prefab(objects)?;}
+ if nested.iter().any(|n|!valid_prefab_file(&n.file)||n.file==file){return Err("Invalid or recursive reference".into());}
+ std::fs::create_dir_all(root).map_err(|e|e.to_string())?;
+ let root=root.canonicalize().map_err(|e|e.to_string())?;let path=root.join(file);
+ let bytes=serde_json::to_vec_pretty(&serde_json::json!({"objects":objects,"nested":nested})).map_err(|e|e.to_string())?;
+ if bytes.len()>8*1024*1024{return Err("Composite exceeds 8 MiB".into());}
+ let mut handle=std::fs::OpenOptions::new().write(true).create_new(true).open(&path).map_err(|e|e.to_string())?;
+ let written=handle.write_all(&bytes).and_then(|_|handle.sync_all());drop(handle);
+ let result=written.map_err(|e|e.to_string()).and_then(|_|load_library_prefab(&root,file).map(|v|v.len()));
+ if result.is_err(){let _=std::fs::remove_file(&path);}result
+}
+#[cfg(test)]mod composer_tests{use super::*;#[test]fn preserves_source_and_no_overwrite(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let source=serde_json::to_vec(&vec![Object::new("child",[0.;2],[1.;2],[255;4])]).unwrap();std::fs::write(root.join("child.prefab.json"),&source).unwrap();let n=NestedPrefab{id:uuid::Uuid::new_v4(),file:"child.prefab.json".into(),parent:None,offset:[4.,5.]};assert_eq!(create_composite_prefab(&root,"parent.prefab.json",&[],&[n.clone()]).unwrap(),1);assert!(create_composite_prefab(&root,"child.prefab.json",&[],&[n.clone()]).is_err());assert!(create_composite_prefab(&root,"parent.prefab.json",&[],&[n]).is_err());assert_eq!(std::fs::read(root.join("child.prefab.json")).unwrap(),source);std::fs::remove_dir_all(root).unwrap();}}

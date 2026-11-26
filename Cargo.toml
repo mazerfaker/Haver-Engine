@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.7.24"
+version = "0.7.25"
 edition = "2024"
 default-run = "forge_editor"
 
@@ -11,6 +11,8 @@ lua = ["dep:mlua"]
 audio = ["bevy/bevy_audio", "bevy/vorbis", "bevy/wav"]
 lighting = []
 gpu-lab = ["lighting"]
+gpu-instancing-lab = ["gpu-lab"]
+audio-dsp-lab = ["audio"]
 editor = ["dep:rfd", "dep:sysinfo", "physics-rapier", "lua", "audio", "lighting"]
 
 [[bin]]
@@ -61,3 +63,14 @@ required-features = ["gpu-lab"]
 name = "gpu_particle_lab"
 path = "experimental/gpu_particle_lab.rs"
 required-features = ["gpu-lab"]
+
+# Isolated from the existing GPU runtime and its routine checks.
+[[example]]
+name = "gpu_instancing_lab"
+path = "experimental/gpu_instancing_lab.rs"
+required-features = ["gpu-instancing-lab"]
+
+[[example]]
+name = "audio_dsp_lab"
+path = "experimental/audio_dsp_lab.rs"
+required-features = ["audio-dsp-lab"]

@@ -1,0 +1,5 @@
+Forge Engine 0.7.25 source update from 0.7.24
+Back up existing project. Extract archive contents into the current Forge Engine directory.
+Keep Cargo.lock and target. Run QUICK_CHECK.bat and QUICK_TEST.bat first.
+New experimental examples: CHECK_EXPERIMENTS.bat, GPU_INSTANCING_LAB.bat, AUDIO_DSP_LAB.bat.
+See docs/RELEASE_0725.md. No compiled EXE supplied. No Auto Rig.

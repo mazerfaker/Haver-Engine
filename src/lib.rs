@@ -55,6 +55,7 @@ impl Project {
         let mut ids = std::collections::HashSet::new();
         for o in &p.objects {
             if !ids.insert(o.id) || !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|x| x.is_finite()) || o.size.iter().any(|x| *x <= 0.) { return Err("Invalid object".into()); }
+            if !o.motion.valid_clip_keys(){return Err("Invalid clip transform channels".into());}
             if o.motion.events.len()>256||o.motion.events.iter().any(|e|!e.time.is_finite()||e.time<0.||e.name.len()>128||e.clip.len()>128){return Err("Invalid animation events".into());}
             for a in std::iter::once(&o.animation).chain(o.clips.values()){if a.regions.len()>16384||a.regions.iter().any(|&r|!valid_region(r)){return Err("Invalid atlas region".into());}}
             if let Some(s) = &o.sprite { if !s.starts_with("assets/") || Path::new(s).components().any(|c| !matches!(c, std::path::Component::Normal(_))) { return Err("Invalid asset path".into()); } }

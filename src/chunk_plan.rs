@@ -11,7 +11,7 @@ pub fn candidates(p:&Project)->BTreeMap<ChunkKey,Vec<Uuid>> {
  if p.isometric {return out;}
  for o in &p.objects {
   let Some(t)=&o.tile else {continue};
-  if o.camera || o.player || o.parent.is_some() || o.body==Body::Dynamic || o.body==Body::Trigger || !o.script.trim().is_empty() || o.animation.frames!=1 || !o.clips.is_empty() || !o.motion.keys.is_empty() || o.pro.light.is_some() || o.pro.emitter.is_some() || o.production.navigation.is_some() {continue;}
+  if o.camera || o.player || o.parent.is_some() || o.body==Body::Dynamic || o.body==Body::Trigger || !o.script.trim().is_empty() || o.animation.frames!=1 || !o.clips.is_empty() || !o.motion.keys.is_empty() || !o.motion.clip_keys.is_empty() || o.pro.light.is_some() || o.pro.emitter.is_some() || o.production.navigation.is_some() {continue;}
   out.entry(ChunkKey{layer:t.layer,grid:t.grid,x:t.cell[0].div_euclid(16),y:t.cell[1].div_euclid(16),texture:o.sprite.clone()}).or_default().push(o.id);
  }
  out

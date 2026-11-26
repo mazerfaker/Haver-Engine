@@ -1,3 +1,7 @@
+# Forge Engine v0.7.25 — Animation Channels & Experimental Runtime Labs
+
+See [release notes](docs/RELEASE_0725.md). Run QUICK_CHECK.bat and QUICK_TEST.bat before release. New lab examples are opt-in: CHECK_EXPERIMENTS.bat. Source only; Rust and GPU/audio execution not verified.
+
 # Forge Engine v0.7.11 — Combat & UI Refinement
 
 See [release notes](docs/RELEASE_0711.md) and `QA_STATIC_0711.txt`. Source only; compilation not verified.
@@ -216,6 +220,6 @@ See [release notes](docs/RELEASE_0722.md). Run QUICK_CHECK.bat, QUICK_TEST.bat a
 ## v0.7.23 — Inventory PRO & Checkpoints
 See [release notes and Windows checks](docs/RELEASE_0723.md). `RUN_INVENTORY_PRO_SCENE.bat` exercises item effects, equipment and checkpoints (F5/F9). The checkpoint lives beside the entry scene, not inside the authored scene file. The new source is not yet a confirmed compiled release; preserve your previous working version.
 
-## v0.7.24 — Timeline & Frame Geometry
+## v0.7.25 — Timeline & Frame Geometry
 
 New transform-key timeline, per-frame trim geometry independent of collider size, external nested prefab loader, shared docking icons and small CPU update optimizations. See `docs/RELEASE_0724.md`. Run `QUICK_CHECK.bat`, `QUICK_TEST.bat` and `RUN_FRAME_GEOMETRY_SCENE.bat`. Rust compilation and GPU runtime still require Windows validation. Hardware instancing and live DSP remain unfinished.
