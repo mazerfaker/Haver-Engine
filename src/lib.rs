@@ -98,3 +98,9 @@ pub mod spatial;
 pub mod modules;
 
 pub mod chunk_plan;
+
+/// Keep HUD controls inside the viewport and scale from the design resolution.
+pub fn adaptive_widget(w:&Widget,viewport:[f32;2],design:[u32;2])->[f32;4]{let scale=(viewport[0]/design[0].max(1) as f32).min(viewport[1]/design[1].max(1) as f32).max(0.);let size=[(w.size[0]*scale).max(0.).min(viewport[0]),(w.size[1]*scale).max(0.).min(viewport[1])];[(w.anchor[0]*viewport[0]).clamp(0.,(viewport[0]-size[0]).max(0.)),(w.anchor[1]*viewport[1]).clamp(0.,(viewport[1]-size[1]).max(0.)),size[0],size[1]]}
+#[cfg(test)] mod adaptive_tests{use super::*;#[test]fn fits(){let w=Widget{anchor:[1.,1.],..Default::default()};let r=adaptive_widget(&w,[320.,180.],[640,360]);assert!(r[0]+r[2]<=320.&&r[1]+r[3]<=180.);}}
+
+pub fn animation_time(o:&Object,elapsed:f32)->f32 {if o.clip_name=="Attack" {o.pro.variables.get("forge_attack_time").copied().unwrap_or(elapsed)}else{elapsed}}

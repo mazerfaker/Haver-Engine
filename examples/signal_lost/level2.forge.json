@@ -1705,7 +1705,7 @@
         255,
         255
       ],
-      "sprite": "assets/hero.png",
+      "sprite": "assets/hero_combat.png",
       "player": true,
       "body": "Dynamic",
       "material": {
@@ -1714,7 +1714,7 @@
       },
       "animation": {
         "columns": 4,
-        "rows": 1,
+        "rows": 2,
         "frames": 1,
         "fps": 8,
         "looping": true
@@ -1725,24 +1725,32 @@
       "clips": {
         "Idle": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 1,
           "fps": 8,
           "looping": true
         },
         "Run": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 4,
           "fps": 10,
           "looping": true
         },
         "Jump": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 1,
           "start": 2,
           "fps": 8,
+          "looping": false
+        },
+        "Attack": {
+          "columns": 4,
+          "rows": 2,
+          "frames": 4,
+          "start": 4,
+          "fps": 16,
           "looping": false
         }
       },
@@ -1965,7 +1973,7 @@
     },
     {
       "id": "ec85f746-a7a0-5e01-8a09-28bcb5c3c8fa",
-      "name": "Enemy:2",
+      "name": "Enemy:Heavy 2",
       "position": [
         125,
         -174
@@ -1978,8 +1986,8 @@
       "layer": 3,
       "color": [
         255,
-        255,
-        255,
+        170,
+        120,
         255
       ],
       "sprite": "assets/enemy.png",

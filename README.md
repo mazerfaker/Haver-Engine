@@ -1,3 +1,7 @@
+# Forge Engine v0.7.11 — Combat & UI Refinement
+
+See [release notes](docs/RELEASE_0711.md) and `QA_STATIC_0711.txt`. Source only; compilation not verified.
+
 # Forge Engine v0.7.10
 
 See [release notes](docs/RELEASE_0710.md). J attacks in the demo.

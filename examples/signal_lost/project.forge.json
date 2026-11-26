@@ -1705,7 +1705,7 @@
         255,
         255
       ],
-      "sprite": "assets/hero.png",
+      "sprite": "assets/hero_combat.png",
       "player": true,
       "body": "Dynamic",
       "material": {
@@ -1714,7 +1714,7 @@
       },
       "animation": {
         "columns": 4,
-        "rows": 1,
+        "rows": 2,
         "frames": 1,
         "fps": 8,
         "looping": true
@@ -1725,24 +1725,32 @@
       "clips": {
         "Idle": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 1,
           "fps": 8,
           "looping": true
         },
         "Run": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 4,
           "fps": 10,
           "looping": true
         },
         "Jump": {
           "columns": 4,
-          "rows": 1,
+          "rows": 2,
           "frames": 1,
           "start": 2,
           "fps": 8,
+          "looping": false
+        },
+        "Attack": {
+          "columns": 4,
+          "rows": 2,
+          "frames": 4,
+          "start": 4,
+          "fps": 16,
           "looping": false
         }
       },
