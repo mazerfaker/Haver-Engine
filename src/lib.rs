@@ -68,3 +68,6 @@ mod ultimate;
 pub use ultimate::*;
 mod editor_core;
 pub use editor_core::*;
+
+mod asset_pipeline;
+pub use asset_pipeline::*;
