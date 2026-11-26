@@ -143,3 +143,9 @@ pub fn prefab_dependency_rows(root:&std::path::Path,refs:&[NestedPrefab])->Vec<P
 }
 
 #[cfg(test)]mod dependency28{use super::*;#[test]fn recursion_and_cycle(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let n=NestedPrefab{id:uuid::Uuid::new_v4(),file:"a.prefab.json".into(),parent:None,offset:[0.;2]};std::fs::write(root.join("a.prefab.json"),serde_json::to_vec(&serde_json::json!({"nested":[n.clone()]})).unwrap()).unwrap();let rows=prefab_dependency_rows(&root,&[n]);assert_eq!(rows.len(),2);assert!(rows[1].error.is_some());std::fs::remove_dir_all(root).unwrap();}}
+
+/// Validate a local reparent before committing an inline hierarchy edit.
+pub fn can_reparent_local(objects:&[Object],child:uuid::Uuid,parent:Option<uuid::Uuid>)->bool{
+ if !objects.iter().any(|o|o.id==child){return false;}let mut next=parent;for _ in 0..=objects.len(){let Some(id)=next else{return true;};if id==child{return false;}let Some(o)=objects.iter().find(|o|o.id==id)else{return false;};next=o.parent;}false
+}
+#[cfg(test)]mod reparent35{use super::*;#[test]fn local_cycle(){let a=Object::new("a",[0.;2],[1.;2],[255;4]);let mut b=Object::new("b",[0.;2],[1.;2],[255;4]);b.parent=Some(a.id);assert!(!can_reparent_local(&[a.clone(),b.clone()],a.id,Some(b.id)));assert!(can_reparent_local(&[a.clone(),b.clone()],b.id,None));}}

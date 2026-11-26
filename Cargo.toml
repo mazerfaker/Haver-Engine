@@ -1,6 +1,6 @@
 [package]
 name = "forge_engine"
-version = "0.7.34"
+version = "0.7.35"
 edition = "2024"
 default-run = "forge_editor"
 

@@ -61,9 +61,9 @@ impl GpuDraw<'_,'_> {
     self.state.normals.get(&key).cloned().flatten().unwrap_or(flat)
    }else{flat};
    let albedo=if o.sprite.is_some(){sprite.image.clone()}else{white};
-   let uv=if o.sprite.is_some(){o.animation.uv(crate::animation_time(o,elapsed))}else{[[0.,0.],[1.,0.],[1.,1.],[0.,1.]]};
-   let (center,frame_size)=crate::sprite_frame_geometry(o,false,crate::animation_time(o,elapsed));let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
-   let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,crate::animation_time(o,elapsed),tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
+   let anim_time=crate::animation_time(o,elapsed);let uv=if o.sprite.is_some(){o.animation.uv(anim_time)}else{[[0.,0.],[1.,0.],[1.,1.],[0.,1.]]};
+   let (center,frame_size)=crate::sprite_frame_geometry(o,false,anim_time);let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
+   let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,anim_time,tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
    let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
    let relevant=best_n_fixed::<_,3>(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().flatten().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);

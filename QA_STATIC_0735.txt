@@ -1,0 +1,5 @@
+Forge Engine v0.7.35 — QA
+PASS: 62 Python static/reference-model tests (4 new); static fixture checks for 4 Signal Lost levels, 214 objects.
+PASS: All 85 inherited example files byte-identical; 9/10 inherited WGSL files unchanged (only gpu_scene.wgsl changed). No files removed; JSON/TOML parse; dependencies unchanged.
+BLOCKED: cargo check --all-targets --features gpu-lab: cargo: command not found. Five new Rust tests unrun. No compiled Windows binary or live audio/GUI/GPU tests; no measured performance gains.
+PASS: exact ZIP overlay and ZIP integrity verified by packaging script; no Cargo.lock or target in either archive.

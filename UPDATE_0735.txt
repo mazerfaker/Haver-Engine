@@ -1,0 +1,2 @@
+Forge Engine v0.7.35 source update from v0.7.34 only.
+Back up the project, extract the update ZIP into the existing Forge Engine directory, accepting replacements. Do not delete Cargo.lock or target. Run QUICK_CHECK.bat then QUICK_TEST.bat. See docs/RELEASE_0735.md. Experimental summed audio is disabled by default. No compiler/runtime validation was possible here.

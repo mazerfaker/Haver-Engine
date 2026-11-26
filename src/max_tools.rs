@@ -12,7 +12,7 @@ impl AssetDatabase {
  /// Return reachable resources and unresolved document links; cycles are visited once.
  pub fn transitive_assets(&self,owner:&str)->(Vec<String>,Vec<String>){
   let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];
-  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if crate::valid_asset(&node){if self.entries.get(&node).is_some_and(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);continue;}if let Some(edges)=self.graph.get(&node){todo.extend(edges.iter().cloned());}else{unresolved.insert(node);}}
+  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if let Some(edges)=self.graph.get(&node){for edge in edges{if !seen.contains(edge){todo.push(edge.clone());}}}else if crate::valid_asset(&node){if self.entries.get(&node).is_none_or(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);}else{unresolved.insert(node);}}
   (assets.into_iter().collect(),unresolved.into_iter().collect())
  }
  pub fn refresh(root:&Path,paths:&[String],active:&Project)->Result<Self,String>{Self::refresh_with_cache(root,paths,active,true)}
@@ -56,3 +56,13 @@ pub fn import_aseprite(json:&Path,root:&Path)->Result<Object,String>{
 #[cfg(test)]mod tests{use super::*;#[test]fn timed_frames(){let a=Animation{columns:2,frames:2,durations:vec![100,300],..Default::default()};assert_eq!(a.frame(0.05),0);assert_eq!(a.frame(0.2),1);assert_eq!(a.frame(0.41),0);}}
 
 #[cfg(test)]mod missing33{use super::*;#[test]fn missing_asset_report(){let mut db=AssetDatabase::default();db.graph.insert("scene".into(),vec!["assets/missing.png".into()]);db.entries.insert("assets/missing.png".into(),AssetEntry{id:Uuid::new_v4(),bytes:0,references:vec!["scene".into()],present:false});let(a,m)=db.transitive_assets("scene");assert_eq!(a,m);}}
+
+#[derive(Clone,Debug)]pub struct AssetGraphNode{pub path:String,pub parent:Option<usize>,pub depth:usize,pub missing:bool,pub repeated:bool}
+impl AssetDatabase{
+ pub fn dependency_nodes(&self,owner:&str)->Vec<AssetGraphNode>{
+  let mut rows=Vec::new();let mut seen=std::collections::BTreeSet::new();let mut queue=std::collections::VecDeque::from([(owner.to_owned(),None,0usize)]);
+  while let Some((path,parent,depth))=queue.pop_front(){if rows.len()>=512{break;}let repeated=!seen.insert(path.clone());let edges=self.graph.get(&path);let missing=edges.is_none()&&self.entries.get(&path).is_none_or(|a|!a.present);let i=rows.len();rows.push(AssetGraphNode{path,parent,depth,missing,repeated});if !repeated&&depth<16{if let Some(edges)=edges{let room=512usize.saturating_sub(rows.len()+queue.len());queue.extend(edges.iter().take(room).map(|s|(s.clone(),Some(i),depth+1)));}}}
+  rows
+ }
+}
+#[cfg(test)]mod graph35{use super::*;#[test]fn nested_and_missing(){let mut db=AssetDatabase::default();db.graph.insert("root".into(),vec!["assets/child.prefab.json".into()]);db.graph.insert("assets/child.prefab.json".into(),vec!["root".into(),"assets/missing.png".into()]);let(a,m)=db.transitive_assets("root");assert_eq!(a,vec!["assets/missing.png"]);assert_eq!(m,a);let rows=db.dependency_nodes("root");assert_eq!(rows.len(),4);assert!(rows.iter().any(|r|r.repeated));assert!(rows.iter().any(|r|r.missing));}}

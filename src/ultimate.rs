@@ -86,3 +86,16 @@ impl TimelineClipboard {
  }
 }
 #[cfg(test)]mod clipboard34{use super::*;#[test]fn shared_origin_and_rollback(){let key=|time|ScalarKey{time,value:1.,smooth:false,bezier:None,bezier_x:None};let mut m=Motion::default();m.property_channels.insert("A".into(),[vec![key(1.)],vec![key(2.)],vec![]]);m.events.push(crate::AnimationEvent{clip:"A".into(),time:1.5,name:"step".into()});let c=TimelineClipboard::capture(&m,"A",[true;6],[0.,3.],true);assert_eq!(c.count(),3);assert_eq!(c.paste(&mut m,"B",4.,6.).unwrap(),3);assert_eq!(m.property_channels["B"][1][0].time,5.);assert_eq!(m.events[1].time,4.5);let old=m.clone();assert!(c.paste(&mut m,"B",4.,6.).is_err());assert_eq!(m,old);assert!(c.paste(&mut m,"C",4.,4.1).is_err());assert_eq!(m,old);}}
+
+/// Transactional shift across scalar lanes and the optional clip-event lane.
+pub fn move_timeline_group(m:&mut Motion,clip:&str,axes:[bool;6],range:[f32;2],delta:f32,events:bool,duration:f32)->Result<usize,String>{
+ if !delta.is_finite()||!range.iter().all(|v|v.is_finite())||!duration.is_finite()||duration<=0.{return Err("Invalid timeline interval".into());}
+ let (lo,hi)=(range[0].min(range[1]),range[0].max(range[1]));let mut draft=m.clone();let captured=TimelineClipboard::capture(m,clip,axes,range,events);let mut count=0;
+ if captured.tracks.iter().any(|k|!k.is_empty()){count+=move_multi_channel(&mut draft,clip,axes,range,delta)?;}
+ if events{for e in &mut draft.events{if e.clip==clip&&(lo..=hi).contains(&e.time){e.time+=delta;if !(0. ..duration).contains(&e.time){return Err("Event outside clip duration".into());}count+=1;}}
+  for (i,e) in draft.events.iter().enumerate().filter(|(_,e)|e.clip==clip){if draft.events[..i].iter().any(|v|v.clip==clip&&v.name==e.name&&(v.time-e.time).abs()<0.0001){return Err("Event collision; no lanes changed".into());}}
+ }
+ if count==0{return Err("No selected keys or events".into());}*m=draft;Ok(count)
+}
+pub fn delete_timeline_events(m:&mut Motion,clip:&str,range:[f32;2])->usize{if !range.iter().all(|v|v.is_finite()){return 0;}let old=m.events.len();let(lo,hi)=(range[0].min(range[1]),range[0].max(range[1]));m.events.retain(|e|e.clip!=clip||!(lo..=hi).contains(&e.time));old-m.events.len()}
+#[cfg(test)]mod timeline35{use super::*;#[test]fn event_shift_atomic(){let mut m=Motion::default();m.events=vec![crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:0.2},crate::AnimationEvent{clip:"A".into(),name:"step".into(),time:0.5}];let old=m.clone();assert!(move_timeline_group(&mut m,"A",[false;6],[0.1,0.3],0.3,true,1.).is_err());assert_eq!(m,old);assert_eq!(move_timeline_group(&mut m,"A",[false;6],[0.1,0.3],0.1,true,1.).unwrap(),1);assert_eq!(delete_timeline_events(&mut m,"A",[0.,0.4]),1);}}

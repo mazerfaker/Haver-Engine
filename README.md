@@ -254,3 +254,6 @@ New transform-key timeline, per-frame trim geometry independent of collider size
 
 ### v0.7.34 — Timeline Clipboard & Summed DSP Tools
 See [RELEASE_0734.md](RELEASE_0734.md) for features, usage and validation limits. Source candidate; run QUICK_CHECK and QUICK_TEST before release. Existing project formats and dependency pins retained.
+
+## v0.7.35
+See [release notes](docs/RELEASE_0735.md) for shared PCM bus, timeline events, recursive asset browser and QA limitations.

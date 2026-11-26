@@ -20,6 +20,8 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
  let uv=mix(p.uv.xy,p.uv.zw,mesh.uv);
  let base=textureSample(albedo,albedo_sampler,uv)*p.tint;
  let raw=textureSample(normals,normal_sampler,uv).xyz*2.0-1.0;
+ // Sample both textures before varying control flow to preserve derivative uniformity.
+ if base.a<=0.0{return vec4<f32>(0.0);}
  let n=normalize(vec3<f32>(rotate(vec2<f32>(raw.x,-raw.y)),max(raw.z,0.001)));
  let local=vec2<f32>(mesh.uv.x-0.5,0.5-mesh.uv.y)*p.geometry.zw;
  let world=p.geometry.xy+rotate(local);

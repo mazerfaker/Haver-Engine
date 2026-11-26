@@ -69,15 +69,16 @@ impl Sound{pub fn route(&self)->AudioRoute{self.bus.unwrap_or(if self.music{Audi
 
 /// Named gain groups routed to another group or a built-in bus. Master is applied by the caller.
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)]
-pub struct AudioBusDefinition{pub parent:String,pub gain:f32,pub mute:bool,#[serde(default,skip_serializing_if="Option::is_none")]pub effects:Option<crate::WavEffects>}
-impl Default for AudioBusDefinition{fn default()->Self{Self{parent:"Master".into(),gain:1.,mute:false,effects:None}}}
+pub struct AudioBusDefinition{#[serde(default,skip_serializing_if="is_false")]pub summed_runtime:bool,pub parent:String,pub gain:f32,pub mute:bool,#[serde(default,skip_serializing_if="Option::is_none")]pub effects:Option<crate::WavEffects>}
+fn is_false(v:&bool)->bool{!*v}
+impl Default for AudioBusDefinition{fn default()->Self{Self{summed_runtime:false,parent:"Master".into(),gain:1.,mute:false,effects:None}}}
 pub const BUILTIN_AUDIO_BUSES:[&str;5]=["Master","Music","SFX","Voice","Ambience"];
 pub fn valid_bus_name(s:&str)->bool{!s.trim().is_empty()&&s.trim()==s&&s.len()<=64&&!s.chars().any(char::is_control)&&!BUILTIN_AUDIO_BUSES.contains(&s)}
 impl GameSettings{
  pub fn custom_bus_gain<'a>(&'a self,name:&'a str)->Option<f32>{let mut name=name;let mut gain=1.;for _ in 0..=32{let built=match name{"Master"=>Some(1.),"Music"=>Some(self.music),"SFX"=>Some(self.sfx),"Voice"=>Some(self.voice),"Ambience"=>Some(self.ambience),_=>None};if let Some(v)=built{return Some(gain*v.clamp(0.,1.));}let bus=self.audio_buses.get(name)?;if !bus.gain.is_finite(){return None;}gain*=if bus.mute{0.}else{bus.gain.clamp(0.,1.)};name=&bus.parent;}None}
  pub fn valid_audio_buses(&self)->bool{self.audio_buses.len()<=32&&self.audio_buses.iter().all(|(name,b)|valid_bus_name(name)&&b.gain.is_finite()&&(0. ..=1.).contains(&b.gain)&&b.effects.is_none_or(valid_bus_effects)&&self.custom_bus_gain(name).is_some())}
 }
-#[cfg(test)]mod custom_bus_tests{use super::*;#[test]fn route_and_cycle(){let mut s=GameSettings{music:0.5,..Default::default()};s.audio_buses.insert("Indoor".into(),AudioBusDefinition{parent:"Music".into(),gain:0.5,mute:false,effects:None});s.audio_buses.insert("Radio".into(),AudioBusDefinition{parent:"Indoor".into(),gain:0.5,mute:false,effects:None});assert_eq!(s.custom_bus_gain("Radio"),Some(0.125));assert!(s.valid_audio_buses());let sound=Sound{custom_bus:Some("Radio".into()),..Default::default()};assert_eq!(sound.gain(&s),0.125);s.audio_buses.get_mut("Indoor").unwrap().parent="Radio".into();assert!(!s.valid_audio_buses());assert_eq!(sound.gain(&s),s.sfx);}}
+#[cfg(test)]mod custom_bus_tests{use super::*;#[test]fn route_and_cycle(){let mut s=GameSettings{music:0.5,..Default::default()};s.audio_buses.insert("Indoor".into(),AudioBusDefinition{summed_runtime:false,parent:"Music".into(),gain:0.5,mute:false,effects:None});s.audio_buses.insert("Radio".into(),AudioBusDefinition{summed_runtime:false,parent:"Indoor".into(),gain:0.5,mute:false,effects:None});assert_eq!(s.custom_bus_gain("Radio"),Some(0.125));assert!(s.valid_audio_buses());let sound=Sound{custom_bus:Some("Radio".into()),..Default::default()};assert_eq!(sound.gain(&s),0.125);s.audio_buses.get_mut("Indoor").unwrap().parent="Radio".into();assert!(!s.valid_audio_buses());assert_eq!(sound.gain(&s),s.sfx);}}
 
 
 fn valid_bus_effects(fx:crate::WavEffects)->bool{(-12. ..=12.).contains(&fx.low_db)&&(-12. ..=12.).contains(&fx.high_db)&&(0. ..=1.).contains(&fx.room)&&(0. ..=1.).contains(&fx.reverb)}
