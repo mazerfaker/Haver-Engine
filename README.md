@@ -197,6 +197,10 @@ See [release notes](docs/RELEASE_0717.md). Start with QUICK_CHECK.bat, then QUIC
 ## v0.7.18 — UI Studio & Workspace
 Open **UI Studio** in the editor toolbar (outside Play) for hierarchy, responsive layout previews, anchors, and group editing. Enable canvas placement for grouped HUD explicitly to render group members at their anchors in Player; old scenes keep their existing group windows. `RUN_UI_STUDIO_SCENE.bat` launches the example; Studio menu contains workspace presets. See `docs/RELEASE_0718.md` for limitations and validation steps.
 
-## v0.7.19 — Animation & Scene Studio
+## v0.7.20 — Animation & Scene Studio
 
 See `docs/RELEASE_0719.md`. `RUN_STUDIO_PRO_SCENE.bat` opens the new fixture. Keep Cargo.lock and target when updating.
+
+## v0.7.20 — Docking, Graph & Atlas (experimental source)
+
+See `docs/RELEASE_0720.md` for controls, testing and limitations. Optional recursive docking and vertex-quad particles preserve the legacy default paths. Use `QUICK_CHECK.bat` before building, and `RUN_GPU_QUADS_SCENE.bat` / `RUN_ATLAS_SCENE.bat` for the new fixtures. No dependency changes. Keep your existing `Cargo.lock` and `target`.

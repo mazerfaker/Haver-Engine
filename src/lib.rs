@@ -5,6 +5,7 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Object {
     #[serde(default)] pub production: ProductionObject,
+    #[serde(default)] pub prefab_link: Option<PrefabLink>,
     #[serde(default)] pub pro: ProComponents,
     pub id: Uuid,
     #[serde(default)] pub material: PhysicsMaterial,
@@ -29,7 +30,7 @@ pub struct Object {
 }
 impl Object {
     pub fn new(name: &str, position: [f32; 2], size: [f32; 2], color: [u8; 4]) -> Self {
-        Self { production: ProductionObject::default(), pro: ProComponents::default(), material: PhysicsMaterial::default(), tile: None, motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
+        Self { prefab_link:None, production: ProductionObject::default(), pro: ProComponents::default(), material: PhysicsMaterial::default(), tile: None, motion: Motion::default(), id: Uuid::new_v4(), name: name.into(), position, size, rotation: 0., layer: 0, color, sprite: None, player: false, parent: None, body: Body::default(), animation: Animation::default(), script: String::new(), graph: Graph::default(), camera: false, clips: Default::default(), clip_name: default_clip() }
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -48,6 +49,7 @@ impl Project {
         let mut ids = std::collections::HashSet::new();
         for o in &p.objects {
             if !ids.insert(o.id) || !o.position.iter().chain(o.size.iter()).chain([&o.rotation]).all(|x| x.is_finite()) || o.size.iter().any(|x| *x <= 0.) { return Err("Invalid object".into()); }
+            for a in std::iter::once(&o.animation).chain(o.clips.values()){if a.regions.len()>16384||a.regions.iter().any(|&r|!valid_region(r)){return Err("Invalid atlas region".into());}}
             if let Some(s) = &o.sprite { if !s.starts_with("assets/") || Path::new(s).components().any(|c| !matches!(c, std::path::Component::Normal(_))) { return Err("Invalid asset path".into()); } }
         }
         for o in &p.objects {if let Some(rel)=&o.production.normal_map {if !valid_asset(rel){return Err("Invalid normal map asset path".into());}}}
@@ -100,6 +102,10 @@ pub use runtime::*;
 
 fn default_clip()->String{"Idle".into()}
 
+mod audio_effects;
+pub use audio_effects::*;
+mod atlas_studio;
+pub use atlas_studio::*;
 mod prefab_studio;
 pub use prefab_studio::*;
 mod animation_studio;

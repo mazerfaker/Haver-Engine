@@ -1,0 +1,42 @@
+Forge Engine v0.7.20 STATIC QA (not compilation)
+PASS validate_demo.py
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+PASS test_pack_assets.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.006s
+
+OK
+PASS validate_gpu_scene.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.005s
+
+OK
+PASS validate_ui_studio.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+PASS validate_studio_pro.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK
+PASS validate_0720.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK
+PASS previous demo files byte-identical: 38
+PASS previous WGSL files byte-identical: 8
+PASS dependency and profile TOML unchanged (except package version)
+PASS JSON/TOML parse
+PASS no removed source files
+NOT RUN: cargo check/build/test, WGSL runtime, Windows editor/player, FPS/RAM/VRAM/EXE measurements

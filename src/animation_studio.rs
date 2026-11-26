@@ -6,9 +6,9 @@ pub enum ClipCondition { #[default] Idle, Moving, JumpInput, Finished, VariableP
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)]
 #[serde(default)]
 pub struct ClipTransition { pub from:String,pub to:String,pub condition:ClipCondition,pub variable:String }
-pub fn clip_frame_count(a:&Animation)->u32 {let total=a.columns.max(1).saturating_mul(a.rows.max(1));a.frames.max(1).min(total-a.start.min(total-1))}
+pub fn clip_frame_count(a:&Animation)->u32 {let total=a.total_frames();a.frames.max(1).min(total-a.start.min(total-1))}
 pub fn frame_start(a:&Animation,index:u32)->f32 {let n=clip_frame_count(a);let i=index.min(n);if a.durations.len()==n as usize&&a.durations.iter().all(|&d|d>0){a.durations.iter().take(i as usize).map(|&d|u64::from(d)).sum::<u64>() as f32/1000.}else{i as f32/a.fps.max(1.)}}
-pub fn step_frame(a:&Animation,t:f32,delta:i32)->f32 {let n=clip_frame_count(a);let start=a.start.min(a.columns.max(1).saturating_mul(a.rows.max(1))-1);let i=i64::from(a.frame(t).saturating_sub(start))+i64::from(delta);frame_start(a,i.clamp(0,i64::from(n-1)) as u32)}
+pub fn step_frame(a:&Animation,t:f32,delta:i32)->f32 {let n=clip_frame_count(a);let start=a.start.min(a.total_frames()-1);let i=i64::from(a.frame(t).saturating_sub(start))+i64::from(delta);frame_start(a,i.clamp(0,i64::from(n-1)) as u32)}
 pub fn set_frame_duration(a:&mut Animation,i:u32,ms:u32)->bool {let n=clip_frame_count(a);if n>16384||i>=n{return false;}if a.durations.len()!=n as usize||a.durations.contains(&0){a.durations=vec![(1000./a.fps.max(1.)).round().max(1.) as u32;n as usize];}a.durations[i as usize]=ms.clamp(1,60000);true}
 pub fn transition_clip(o:&mut Object,input:[f32;2],elapsed:f32)->bool {
  let current=o.clip_name.as_str();let age=crate::animation_time(o,elapsed);let moving=input[0].abs()>0.01||input[1].abs()>0.01;

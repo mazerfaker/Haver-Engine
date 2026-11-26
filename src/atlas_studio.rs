@@ -1,0 +1,17 @@
+//! Irregular atlas regions, normalized top-left UVs; no automatic animation authoring.
+use crate::{Animation,Object};
+use std::{path::{Path,PathBuf},fs};
+pub fn valid_region([x,y,w,h]:[f32;4])->bool{[x,y,w,h].iter().all(|v|v.is_finite())&&x>=0.&&y>=0.&&w>0.&&h>0.&&x+w<=1.000001&&y+h<=1.000001}
+/// Shelf packing with a one-pixel transparent border per image. Input order is frame order.
+pub fn pack_atlas_frames(paths:&[PathBuf],root:&Path)->Result<Object,String>{
+ if paths.is_empty()||paths.len()>256{return Err("Select 1–256 frame images".into());}
+ let mut frames=Vec::new();let mut bytes=0u64;
+ for path in paths{let mut reader=image::ImageReader::open(path).map_err(|e|e.to_string())?.with_guessed_format().map_err(|e|e.to_string())?;let mut limits=image::Limits::default();limits.max_image_width=Some(2046);limits.max_image_height=Some(2046);limits.max_alloc=Some(32*1024*1024);reader.limits(limits);let img=reader.decode().map_err(|e|e.to_string())?.to_rgba8();if img.width()==0||img.height()==0{return Err("Empty frame".into());}bytes+=u64::from(img.width())*u64::from(img.height())*4;if bytes>64*1024*1024{return Err("Frame memory limit: 64 MiB".into());}frames.push(img);}
+ let mut rects=Vec::new();let(mut x,mut y,mut row,mut width)=(0u32,0u32,0u32,0u32);
+ for img in &frames{let(w,h)=(img.width()+2,img.height()+2);if x+w>2048{x=0;y+=row;row=0;}if y+h>4096{return Err("Atlas exceeds 2048 × 4096".into());}rects.push([x+1,y+1,w-2,h-2]);x+=w;row=row.max(h);width=width.max(x);}
+ let height=y+row;let mut atlas=image::RgbaImage::new(width,height);for (img,r) in frames.iter().zip(&rects){image::imageops::replace(&mut atlas,img,i64::from(r[0]),i64::from(r[1]));}
+ let rel=format!("assets/atlas-{}.png",uuid::Uuid::new_v4());fs::create_dir_all(root.join("assets")).map_err(|e|e.to_string())?;atlas.save(root.join(&rel)).map_err(|e|e.to_string())?;
+ let regions=rects.iter().map(|r|[r[0] as f32/width as f32,r[1] as f32/height as f32,r[2] as f32/width as f32,r[3] as f32/height as f32]).collect();
+ let mut o=Object::new("Atlas animation",[0.;2],[frames[0].width() as f32,frames[0].height() as f32],[255;4]);o.sprite=Some(rel);o.animation=Animation{frames:paths.len() as u32,regions,..Default::default()};o.clips.insert(o.clip_name.clone(),o.animation.clone());Ok(o)
+}
+#[cfg(test)]mod tests{use super::*;#[test]fn irregular_uv(){let a=Animation{frames:2,regions:vec![[0.,0.,0.25,0.5],[0.5,0.25,0.25,0.25]],fps:1.,..Default::default()};assert_eq!(a.frame(1.1),1);assert_eq!(a.uv(1.1)[2],[0.75,0.5]);assert!(!valid_region([0.9,0.,0.2,1.]));}#[test]fn pack_roundtrip(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());fs::create_dir_all(&root).unwrap();let a=root.join("a.png");let b=root.join("b.png");image::RgbaImage::new(13,7).save(&a).unwrap();image::RgbaImage::new(5,19).save(&b).unwrap();let o=pack_atlas_frames(&[a,b],&root).unwrap();assert_eq!(o.animation.regions.len(),2);assert!(o.animation.regions.iter().copied().all(valid_region));assert!(root.join(o.sprite.unwrap()).exists());fs::remove_dir_all(root).unwrap();}}

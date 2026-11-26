@@ -1,0 +1,28 @@
+//! Optional recursive docking workspace. Legacy workspace remains available.
+use super::*;
+use serde::{Serialize,Deserialize};
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
+pub(super) enum DockTree{Tabs{panels:Vec<u8>,active:u8},Split{vertical:bool,ratio:f32,a:Box<DockTree>,b:Box<DockTree>}}
+impl Default for DockTree{fn default()->Self{Self::split(false,0.21,Self::leaf(0),Self::split(false,0.72,Self::split(true,0.72,Self::leaf(3),Self::leaf(2)),Self::leaf(1)))}}
+impl DockTree{
+ fn leaf(panel:u8)->Self{Self::Tabs{panels:vec![panel],active:panel}}
+ fn split(vertical:bool,ratio:f32,a:Self,b:Self)->Self{Self::Split{vertical,ratio,a:Box::new(a),b:Box::new(b)}}
+ fn collect(&self,seen:&mut [bool;4],depth:usize)->bool{if depth>8{return false;}match self{Self::Tabs{panels,active}=>!panels.is_empty()&&panels.contains(active)&&panels.iter().all(|&p|{if p>=4||seen[p as usize]{false}else{seen[p as usize]=true;true}}),Self::Split{ratio,a,b,..}=>ratio.is_finite()&&*ratio>=0.1&&*ratio<=0.9&&a.collect(seen,depth+1)&&b.collect(seen,depth+1)}}
+ pub(super) fn valid(&self)->bool{let mut seen=[false;4];self.collect(&mut seen,0)&&seen.iter().all(|x|*x)}
+ fn remove(self,id:u8)->Option<Self>{match self{Self::Tabs{mut panels,mut active}=>{panels.retain(|p|*p!=id);if panels.is_empty(){return None;}if !panels.contains(&active){active=panels[0];}Some(Self::Tabs{panels,active})},Self::Split{vertical,ratio,a,b}=>match((*a).remove(id),(*b).remove(id)){(Some(a),Some(b))=>Some(Self::split(vertical,ratio,a,b)),(a,None)=>a,(None,b)=>b}}}
+ fn insert(&mut self,target:u8,id:u8,place:u8)->bool{match self{Self::Tabs{panels,active} if panels.contains(&target)=>{if place==0{panels.push(id);*active=id;}else{let old=self.clone();let new=Self::leaf(id);*self=if place==1||place==3{Self::split(place==3,0.35,new,old)}else{Self::split(place==4,0.65,old,new)};}true},Self::Tabs{..}=>false,Self::Split{a,b,..}=>a.insert(target,id,place)||b.insert(target,id,place)}}
+ fn move_panel(&mut self,source:u8,target:u8,place:u8){if source==target||source>=4||target>=4||place>4{return;}if let Some(mut next)=self.clone().remove(source){if next.insert(target,source,place)&&next.valid(){*self=next;}}}
+}
+#[derive(Clone,Copy)]struct DragPanel(u8);
+fn title(uk:bool,i:u8)->&'static str{match i{0=>tr(uk,"Сцена","Scene"),1=>tr(uk,"Інспектор","Inspector"),2=>tr(uk,"Інструменти","Tools"),_=>tr(uk,"Вигляд","Viewport")}}
+fn render(node:&mut DockTree,ui:&mut egui::Ui,r:egui::Rect,key:egui::Id,uk:bool,req:&mut Option<(u8,u8,u8)>,body:&mut impl FnMut(u8,&mut egui::Ui)){
+ if r.width()<2.||r.height()<2.{return;}
+ match node{
+ DockTree::Split{vertical,ratio,a,b}=>{let total=if *vertical{r.height()}else{r.width()};let split=(total-6.).max(1.)*ratio.clamp(0.1,0.9);let (ra,rb,bar)=if *vertical{let y=r.top()+split;(egui::Rect::from_min_max(r.min,egui::pos2(r.right(),y)),egui::Rect::from_min_max(egui::pos2(r.left(),y+6.),r.max),egui::Rect::from_min_max(egui::pos2(r.left(),y),egui::pos2(r.right(),y+6.)))}else{let x=r.left()+split;(egui::Rect::from_min_max(r.min,egui::pos2(x,r.bottom())),egui::Rect::from_min_max(egui::pos2(x+6.,r.top()),r.max),egui::Rect::from_min_max(egui::pos2(x,r.top()),egui::pos2(x+6.,r.bottom())))};let response=ui.interact(bar,key.with("divider"),egui::Sense::drag());if response.dragged(){let d=ui.input(|i|i.pointer.delta());*ratio=(*ratio+if *vertical{d.y/total.max(1.)}else{d.x/total.max(1.)}).clamp(0.1,0.9);}ui.painter().rect_filled(bar,1.,if response.hovered()||response.dragged(){ui.visuals().selection.bg_fill}else{ui.visuals().widgets.noninteractive.bg_fill});render(a,ui,ra,key.with(0),uk,req,body);render(b,ui,rb,key.with(1),uk,req,body);},
+ DockTree::Tabs{panels,active}=>{let mut child=ui.new_child(egui::UiBuilder::new().id_salt(key).max_rect(r).layout(egui::Layout::top_down(egui::Align::Min)));child.set_clip_rect(r.intersect(ui.clip_rect()));child.painter().rect_filled(r,2.,child.visuals().panel_fill);child.horizontal_wrapped(|ui|{for &id in panels.iter(){let response=ui.add(egui::Button::new(title(uk,id)).selected(*active==id).sense(egui::Sense::click_and_drag()));if response.clicked(){*active=id;}response.dnd_set_drag_payload(DragPanel(id));if let Some(source)=response.dnd_release_payload::<DragPanel>(){*req=Some((source.0,id,0));}}});child.horizontal_wrapped(|ui|{ui.small("Drop:");for (place,label) in [(0,"Tab"),(1,"←"),(2,"→"),(3,"↑"),(4,"↓")]{let response=ui.small_button(label);if let Some(source)=response.dnd_release_payload::<DragPanel>(){*req=Some((source.0,*active,place));}}});child.separator();if child.available_height()>4.{if *active==2{egui::ScrollArea::vertical().id_salt("tree_tools_scroll").show(&mut child,|ui|body(*active,ui));}else{body(*active,&mut child);}}}
+ }
+}
+pub(super) fn show(ctx:&egui::Context,tree:&mut DockTree,uk:bool,mut body:impl FnMut(u8,&mut egui::Ui)){
+ if !tree.valid(){*tree=DockTree::default();}let mut req=None;egui::CentralPanel::default().show(ctx,|ui|{let r=ui.available_rect_before_wrap();ui.allocate_rect(r,egui::Sense::hover());render(tree,ui,r,egui::Id::new("forge_dock_tree_0720"),uk,&mut req,&mut body);});if let Some((source,target,place))=req{tree.move_panel(source,target,place);}
+}
+#[cfg(test)]mod tests{use super::*;#[test]fn split_tab_and_restore(){let mut t=DockTree::default();assert!(t.valid());t.move_panel(0,1,0);assert!(t.valid());t.move_panel(2,1,3);assert!(t.valid());assert_eq!(t,serde_json::from_slice::<DockTree>(&serde_json::to_vec(&t).unwrap()).unwrap());}}
