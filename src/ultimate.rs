@@ -3,7 +3,7 @@ use serde::{Serialize,Deserialize};
 use uuid::Uuid;
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)]
 #[serde(default)]
-pub struct Motion { pub keys:Vec<Key>,pub pivot:[f32;2],pub hitboxes:std::collections::BTreeMap<u32,[f32;4]>,pub auto_state:bool }
+pub struct Motion { pub keys:Vec<Key>,pub pivot:[f32;2],pub hitboxes:std::collections::BTreeMap<u32,[f32;4]>,pub auto_state:bool, pub transitions:Vec<crate::ClipTransition> }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]
 pub struct Key {pub time:f32,pub position:[f32;2],pub rotation:f32,pub smooth:bool,#[serde(default)]pub bezier:Option<[[f32;2];3]>}
 impl Motion {pub fn sample(&self,t:f32)->Option<([f32;2],f32)>{let mut k=self.keys.iter().filter(|k|k.time.is_finite()).collect::<Vec<_>>();k.sort_by(|a,b|a.time.total_cmp(&b.time));let a=*k.first()?;if t<=a.time{return Some((a.position,a.rotation));}for pair in k.windows(2){let(a,b)=(pair[0],pair[1]);if t<=b.time{let mut u=((t-a.time)/(b.time-a.time).max(0.00001)).clamp(0.,1.);if a.smooth{u=u*u*(3.-2.*u);}let raw=((t-a.time)/(b.time-a.time).max(0.00001)).clamp(0.,1.);let blend=|i:usize|{if let Some(handles)=a.bezier{let [c1,c2]=handles[i];let v=1.-raw;3.*v*v*raw*c1+3.*v*raw*raw*c2+raw*raw*raw}else{u}};return Some((std::array::from_fn(|i|a.position[i]+(b.position[i]-a.position[i])*blend(i)),a.rotation+(b.rotation-a.rotation)*blend(2)));}}let b=k.last()?;Some((b.position,b.rotation))}}

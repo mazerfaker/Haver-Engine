@@ -1,0 +1,257 @@
+{
+  "schema": 2,
+  "name": "Studio PRO QA",
+  "isometric": false,
+  "settings": {
+    "gpu_lighting": false,
+    "ambient": 0.2,
+    "gpu_particles": false,
+    "hud_canvas_groups": true,
+    "widgets": [
+      {
+        "text": "ENERGY",
+        "action": "label",
+        "anchor": [
+          0.04,
+          0.04
+        ],
+        "size": [
+          140,
+          40
+        ],
+        "group": "HUD/Status"
+      },
+      {
+        "text": "Inventory 01",
+        "action": "label",
+        "anchor": [
+          0.04,
+          0.18
+        ],
+        "size": [
+          105,
+          40
+        ],
+        "group": "HUD/Inventory"
+      },
+      {
+        "text": "Inventory 02",
+        "action": "label",
+        "anchor": [
+          0.22,
+          0.18
+        ],
+        "size": [
+          105,
+          40
+        ],
+        "group": "HUD/Inventory"
+      },
+      {
+        "text": "Left",
+        "action": "left",
+        "anchor": [
+          0.04,
+          0.78
+        ],
+        "size": [
+          85,
+          54
+        ],
+        "group": "Controls"
+      },
+      {
+        "text": "Right",
+        "action": "right",
+        "anchor": [
+          0.2,
+          0.78
+        ],
+        "size": [
+          85,
+          54
+        ],
+        "group": "Controls"
+      },
+      {
+        "text": "Jump",
+        "action": "jump",
+        "anchor": [
+          0.8,
+          0.78
+        ],
+        "size": [
+          100,
+          54
+        ],
+        "group": "Controls"
+      },
+      {
+        "text": "energy",
+        "action": "progress",
+        "anchor": [
+          0.5,
+          0.04
+        ],
+        "size": [
+          180,
+          32
+        ],
+        "group": "HUD/Status"
+      },
+      {
+        "text": "Pause / Resume",
+        "action": "pause",
+        "anchor": [
+          0.65,
+          0.18
+        ],
+        "size": [
+          180,
+          40
+        ],
+        "group": "HUD/Menu"
+      }
+    ]
+  },
+  "objects": [
+    {
+      "id": "199adaf3-aced-5a99-be2e-31ea5f3ab43e",
+      "name": "Normal mapped floor",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        680,
+        420
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/panel.png",
+      "player": false,
+      "production": {
+        "normal_map": "assets/panel_normal.png"
+      }
+    },
+    {
+      "id": "a59f033e-b996-50db-ad18-349e389713c0",
+      "name": "Shadow blocker",
+      "position": [
+        25,
+        0
+      ],
+      "size": [
+        60,
+        110
+      ],
+      "rotation": 0,
+      "layer": 1,
+      "color": [
+        120,
+        130,
+        150,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "3eee90d4-2cd8-5a82-924a-caef8d914af7",
+      "name": "Move light (WASD)",
+      "position": [
+        -150,
+        70
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        230,
+        160,
+        255
+      ],
+      "sprite": "assets/studio_actor.png",
+      "player": true,
+      "body": "None",
+      "pro": {
+        "light": {
+          "radius": 450,
+          "intensity": 1.7,
+          "color": [
+            1.0,
+            0.75,
+            0.45
+          ]
+        },
+        "variables": {
+          "energy": 0.65
+        }
+      },
+      "clip_name": "Idle",
+      "animation": {
+        "columns": 3,
+        "rows": 1,
+        "frames": 1,
+        "fps": 8,
+        "looping": true,
+        "start": 0,
+        "durations": [
+          125
+        ]
+      },
+      "clips": {
+        "Idle": {
+          "columns": 3,
+          "rows": 1,
+          "frames": 1,
+          "fps": 8,
+          "looping": true,
+          "start": 0,
+          "durations": [
+            125
+          ]
+        },
+        "Run": {
+          "columns": 3,
+          "rows": 1,
+          "frames": 2,
+          "fps": 8,
+          "looping": true,
+          "start": 1,
+          "durations": [
+            110,
+            220
+          ]
+        }
+      },
+      "motion": {
+        "transitions": [
+          {
+            "from": "Idle",
+            "to": "Run",
+            "condition": "Moving",
+            "variable": ""
+          },
+          {
+            "from": "Run",
+            "to": "Idle",
+            "condition": "Idle",
+            "variable": ""
+          }
+        ]
+      }
+    }
+  ]
+}

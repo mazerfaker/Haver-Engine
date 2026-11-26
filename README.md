@@ -196,3 +196,7 @@ See [release notes](docs/RELEASE_0717.md). Start with QUICK_CHECK.bat, then QUIC
 
 ## v0.7.18 — UI Studio & Workspace
 Open **UI Studio** in the editor toolbar (outside Play) for hierarchy, responsive layout previews, anchors, and group editing. Enable canvas placement for grouped HUD explicitly to render group members at their anchors in Player; old scenes keep their existing group windows. `RUN_UI_STUDIO_SCENE.bat` launches the example; Studio menu contains workspace presets. See `docs/RELEASE_0718.md` for limitations and validation steps.
+
+## v0.7.19 — Animation & Scene Studio
+
+See `docs/RELEASE_0719.md`. `RUN_STUDIO_PRO_SCENE.bat` opens the new fixture. Keep Cargo.lock and target when updating.

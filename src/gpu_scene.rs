@@ -41,7 +41,7 @@ impl GpuDraw<'_,'_> {
   let mut alive=HashSet::new();let mut used_normals=HashSet::new();
   let enabled=p.settings.gpu_lighting && !p.isometric;
   let lights:Vec<_>=if enabled {p.objects.iter().filter_map(|o|o.pro.light.as_ref().filter(|l|l.radius>0.).map(|l|(o,l))).collect()}else{vec![]};
-  let solids:Vec<_>=if enabled {p.objects.iter().filter(|o|o.body==Body::Static && !o.camera).collect()}else{vec![]};
+  let solids:Vec<_>=if enabled {p.objects.iter().filter(|o|o.body==Body::Static && !o.camera).map(|s|{let pos=Vec2::from_array(sprite_center(s,false));let half=Vec2::from_array(s.size)*0.5;let (sn,cs)=s.rotation.to_radians().sin_cos();let half=Vec2::new(cs.abs()*half.x+sn.abs()*half.y,sn.abs()*half.x+cs.abs()*half.y);(s.id,pos,pos-half,pos+half)}).collect()}else{vec![]};
   for (entity,o,sprite,transform,mut visibility) in sources {
    // No texture substitution until original image is ready. CPU fallback remains visible.
    let ready=o.sprite.is_none()||self.images.get(&sprite.image).is_some();
@@ -61,9 +61,9 @@ impl GpuDraw<'_,'_> {
    let center=Vec2::from_array(sprite_center(o,false));let (sin,cos)=o.rotation.to_radians().sin_cos();
    let mut params=LightParams{tint:Vec4::from_array(o.color.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,o.size[0],o.size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
    let strength=|(s,l):&(&Object,&crate::Light)|{let d=center.distance(Vec2::from_array(s.position));(1.-d/l.radius).max(0.)*l.intensity.max(0.)};
-   let mut relevant:Vec<_>=lights.iter().copied().filter(|x|strength(x)>0.).collect();relevant.sort_by(|a,b|strength(b).total_cmp(&strength(a)));for (li,(source,light)) in relevant.into_iter().take(p.settings.gpu_light_count.clamp(1,3) as usize).enumerate(){
+   let mut relevant:Vec<_>=lights.iter().copied().filter_map(|x|{let s=strength(&x);(s>0.).then_some((s,x))}).collect();relevant.sort_by(|a,b|b.0.total_cmp(&a.0));for (li,(_,(source,light))) in relevant.into_iter().take(p.settings.gpu_light_count.clamp(1,3) as usize).enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
-    let mut blocks:Vec<_>=solids.iter().copied().filter(|s|s.id!=o.id&&s.id!=source.id).filter_map(|s|{let pos=Vec2::from_array(sprite_center(s,false));let half=Vec2::from_array(s.size)*0.5;let (sn,cs)=s.rotation.to_radians().sin_cos();let half=Vec2::new(cs.abs()*half.x+sn.abs()*half.y,sn.abs()*half.x+cs.abs()*half.y);let a=pos-half;let b=pos+half;let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}).collect();
+    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let mut blocks:Vec<_>=solids.iter().copied().filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}).collect();
     blocks.sort_by(|a,b|a.0.total_cmp(&b.0));for (i,(_,b)) in blocks.into_iter().take(4).enumerate(){params.blockers[li*4+i]=b;}
    }
    let mut t=*transform;t.scale=Vec3::new(o.size[0],o.size[1],1.);

@@ -16,7 +16,7 @@ impl Group {
     }
 }
 fn widget_preset(action:&str)->Widget{
-    Widget{text:match action{"left"=>"Left","right"=>"Right","jump"=>"Jump",_=>"Label"}.into(),action:action.into(),anchor:[0.1,0.1],..Default::default()}
+    Widget{text:match action{"left"=>"Left","right"=>"Right","jump"=>"Jump","pause"=>"Pause / Resume","progress"=>"health",_=>"Label"}.into(),action:action.into(),anchor:[0.1,0.1],..Default::default()}
 }
 pub(super) fn window(ctx:&egui::Context,e:&mut Editor){
     if !e.hud_studio.open{return;}
@@ -28,7 +28,7 @@ pub(super) fn window(ctx:&egui::Context,e:&mut Editor){
     egui::Window::new("UI Studio / Студія UI").id(egui::Id::new("hud_studio18")).open(&mut open).default_size([840.,550.]).resizable(true).show(ctx,|ui|{
         if studio.selected.is_some_and(|i|i>=s.widgets.len()){studio.selected=None;}
         ui.horizontal_wrapped(|ui|{
-            for a in ["label","left","right","jump"]{if ui.button(format!("+ {a}")).clicked(){s.widgets.push(widget_preset(a));studio.selected=Some(s.widgets.len()-1);}}
+            for a in ["label","left","right","jump","pause","progress"]{if ui.button(format!("+ {a}")).clicked(){s.widgets.push(widget_preset(a));studio.selected=Some(s.widgets.len()-1);}}
             if ui.button("+ Inventory slots").clicked(){let start=s.widgets.len();for i in 0..6{s.widgets.push(Widget{text:format!("Slot {}",i+1),action:"label".into(),anchor:[0.05+(i%3) as f32*0.22,0.15+(i/3) as f32*0.20],size:[96.,38.],group:"HUD/Inventory".into()});}studio.selected=Some(start);}
             ui.checkbox(&mut studio.snap,"Snap 5%");
         });
@@ -72,7 +72,7 @@ pub(super) fn window(ctx:&egui::Context,e:&mut Editor){
             let w=&mut s.widgets[i];
             ui.horizontal(|ui|{ui.label("Text");ui.text_edit_singleline(&mut w.text);});
             ui.horizontal(|ui|{ui.label("Group path");ui.text_edit_singleline(&mut w.group);if ui.button("Normalize").clicked(){w.group=hud_group_path(&w.group);}});
-            egui::ComboBox::from_id_salt("hud_action18").selected_text(&w.action).show_ui(ui,|ui|{for a in ["label","left","right","jump"]{ui.selectable_value(&mut w.action,a.into(),a);}});
+            egui::ComboBox::from_id_salt("hud_action18").selected_text(&w.action).show_ui(ui,|ui|{for a in ["label","left","right","jump","pause","progress"]{ui.selectable_value(&mut w.action,a.into(),a);}});
             ui.horizontal_wrapped(|ui|{for (j,v) in w.anchor.iter_mut().enumerate(){ui.add(egui::DragValue::new(v).range(0. ..=1.).speed(0.005).prefix(["X ","Y "][j]));}for (j,v) in w.size.iter_mut().enumerate(){ui.add(egui::DragValue::new(v).range(16. ..=800.).prefix(["W ","H "][j]));}});
             ui.horizontal_wrapped(|ui|{
                 if ui.button("Duplicate").clicked(){let mut copy=s.widgets[i].clone();copy.anchor=copy.anchor.map(|v|(v+0.03).min(1.));s.widgets.push(copy);studio.selected=Some(s.widgets.len()-1);}
@@ -81,7 +81,7 @@ pub(super) fn window(ctx:&egui::Context,e:&mut Editor){
                 if ui.button("Remove").clicked(){s.widgets.remove(i);studio.selected=None;}
             });
         }else{ui.label("Select a widget in the hierarchy or preview.");}
-        ui.label("Inventory slots are layout labels, not an inventory gameplay system.");
+        ui.label("Pause and progress require Canvas placement. Progress reads the player variable named in Text (0–1). Inventory slots are layout labels.");
     });
     studio.open=open;
     if begin_drag&&e.drag_start.is_none(){e.drag_start=Some(old);}

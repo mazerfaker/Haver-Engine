@@ -51,6 +51,7 @@ impl Project {
             if let Some(s) = &o.sprite { if !s.starts_with("assets/") || Path::new(s).components().any(|c| !matches!(c, std::path::Component::Normal(_))) { return Err("Invalid asset path".into()); } }
         }
         for o in &p.objects {if let Some(rel)=&o.production.normal_map {if !valid_asset(rel){return Err("Invalid normal map asset path".into());}}}
+        for o in &p.objects {if let Some(rel)=&o.production.particle_texture{if !valid_asset(rel){return Err("Invalid particle texture asset path".into());}}}
         p.schema = 2;
         Ok(p)
     }
@@ -99,6 +100,10 @@ pub use runtime::*;
 
 fn default_clip()->String{"Idle".into()}
 
+mod prefab_studio;
+pub use prefab_studio::*;
+mod animation_studio;
+pub use animation_studio::*;
 mod ultimate;
 pub use ultimate::*;
 mod editor_core;
