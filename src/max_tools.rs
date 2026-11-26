@@ -9,6 +9,29 @@ struct DependencyDocument { stamp:[u64;3], assets:Vec<(String,String)>, prefabs:
 #[derive(Default,Serialize,Deserialize)]
 pub struct AssetDatabase {pub entries:BTreeMap<String,AssetEntry>,#[serde(default)]pub scan_warnings:Vec<String>,#[serde(default)]pub graph:BTreeMap<String,Vec<String>>,#[serde(default)]pub cache_hits:usize,#[serde(default)]pub cache_misses:usize,#[serde(default)]documents:BTreeMap<String,DependencyDocument>}
 impl AssetDatabase {
+ /// Return direct and transitive document owners of an exact graph path.
+ /// Bounded, deterministic reverse traversal. The starting node is excluded even in cycles.
+ pub fn reverse_dependencies(&self,target:&str)->Result<Vec<(String,usize)>,String>{
+  use std::collections::{BTreeSet,VecDeque};
+  if target.is_empty()||target.len()>4096{return Err("Invalid dependency target".into());}
+  let mut reverse:BTreeMap<&str,Vec<&str>>=BTreeMap::new();let mut edges=0usize;
+  for (owner,links) in &self.graph{
+   for link in links{
+    edges+=1;if edges>262144{return Err("Reverse graph edge budget exceeded".into());}
+    reverse.entry(link.as_str()).or_default().push(owner.as_str());
+   }
+  }
+  let mut seen=BTreeSet::from([target]);let mut queue=VecDeque::from([(target,0usize)]);let mut rows=Vec::new();
+  while let Some((path,depth))=queue.pop_front(){
+   if let Some(owners)=reverse.get(path){
+    for &owner in owners{if seen.insert(owner){
+     if seen.len()>32768{return Err("Reverse traversal node budget exceeded".into());}
+     let distance=depth+1;rows.push((owner.to_owned(),distance));queue.push_back((owner,distance));
+    }}
+   }
+  }
+  rows.sort_by(|a,b|a.1.cmp(&b.1).then_with(||a.0.cmp(&b.0)));Ok(rows)
+ }
  /// Return reachable resources and unresolved links (including absent assets); cycles are visited once.
  pub fn transitive_assets(&self,owner:&str)->(Vec<String>,Vec<String>){
   let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];let mut queued=std::collections::BTreeSet::from([owner.to_string()]);
@@ -101,3 +124,24 @@ impl AssetDatabase {
  pub fn upstream_documents(&self,asset:&str)->Vec<String>{let mut reverse:BTreeMap<&str,Vec<&str>>=BTreeMap::new();for (owner,edges) in &self.graph{for edge in edges{reverse.entry(edge.as_str()).or_default().push(owner.as_str());}}let mut seen=std::collections::BTreeSet::from([asset]);let mut todo=vec![asset];while let Some(node)=todo.pop(){if let Some(parents)=reverse.get(node){for &parent in parents{if seen.len()>=32768{break;}if seen.insert(parent){todo.push(parent);}}}}seen.remove(asset);seen.into_iter().map(str::to_owned).collect()}
 }
 #[cfg(test)]mod upstream37{use super::*;#[test]fn recursive_owners(){let mut db=AssetDatabase::default();db.graph.insert("scene".into(),vec!["prefab".into()]);db.graph.insert("prefab".into(),vec!["assets/a.png".into(),"scene".into()]);assert_eq!(db.upstream_documents("assets/a.png"),vec!["prefab","scene"]);}}
+
+#[cfg(test)]mod reverse46{
+ use super::*;
+ #[test]fn reverse_graph_distances_and_cycles(){
+  let mut db=AssetDatabase::default();
+  db.graph.insert("prefabs/a.prefab.json".into(),vec!["assets/a.png".into(),"prefabs/b.prefab.json".into()]);
+  db.graph.insert("prefabs/b.prefab.json".into(),vec!["prefabs/a.prefab.json".into()]);
+  db.graph.insert("scene.forge.json".into(),vec!["prefabs/a.prefab.json".into(),"prefabs/b.prefab.json".into()]);
+  let rows=db.reverse_dependencies("assets/a.png").unwrap();
+  assert_eq!(rows,vec![("prefabs/a.prefab.json".into(),1),("prefabs/b.prefab.json".into(),2),("scene.forge.json".into(),2)]);
+  let rows=db.reverse_dependencies("prefabs/a.prefab.json").unwrap();
+  assert_eq!(rows,vec![("prefabs/b.prefab.json".into(),1),("scene.forge.json".into(),1)]);
+ }
+ #[test]fn reverse_missing_and_duplicate_edges(){
+  let mut db=AssetDatabase::default();
+  db.graph.insert("scene".into(),vec!["assets/missing.png".into(),"assets/missing.png".into()]);
+  assert_eq!(db.reverse_dependencies("assets/missing.png").unwrap(),vec![("scene".into(),1)]);
+  assert!(db.reverse_dependencies("assets/unknown.png").unwrap().is_empty());
+  assert!(db.reverse_dependencies("").is_err());
+ }
+}

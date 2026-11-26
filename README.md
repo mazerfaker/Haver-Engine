@@ -1,3 +1,7 @@
+# Haver Engine v0.7.46 — Asset Database & Prefab Graph
+
+Read-only reverse dependency search for direct and transitive scene/prefab owners. Candidate based on CI-verified v0.7.45. See `docs/RELEASE_0746.md`.
+
 # Haver Engine v0.7.45 — Animation Studio Refinement
 
 Transactional selected timeline retiming across six scalar lanes and optional events. Candidate based on CI-verified v0.7.44. See `docs/RELEASE_0745.md`.
