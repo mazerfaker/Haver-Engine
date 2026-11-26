@@ -1,0 +1,111 @@
+Forge v0.7.30 STATIC QA
+Python unittest executions: 43 PASS
+Signal Lost: 4/4 levels, 214 objects (static asset/structure checks)
+Prior example files unchanged: 71/71
+Prior WGSL unchanged: 10/10
+JSON parsed; Cargo manifest only root version changed.
+Rust compiler / cargo unavailable; Rust tests and Windows/GPU/audio runtime NOT RUN. GPU timestamps and VRAM unavailable.
+
+validate_demo.py
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+
+test_pack_assets.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.005s
+
+OK
+
+validate_0720.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK
+
+validate_0722.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+
+validate_0723.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+
+validate_0724.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+OK
+
+validate_0725.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+
+validate_0726.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+
+validate_0727.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+
+validate_0728.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK
+
+validate_0729.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+
+validate_0730.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+
+validate_gpu_scene.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.005s
+
+OK
+
+validate_studio_pro.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+
+validate_ui_studio.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK

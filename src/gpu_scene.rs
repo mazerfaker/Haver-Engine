@@ -37,8 +37,8 @@ fn load_normal(root:&Path,rel:&str,images:&mut Assets<Image>)->Option<Handle<Ima
 impl GpuDraw<'_,'_> {
  pub fn idle(&self)->bool {self.state.visuals.is_empty()}
  pub fn sync<'a>(&mut self,p:&Project,root:Option<&Path>,elapsed:f32,sources:impl Iterator<Item=(Entity,&'a Object,&'a Sprite,&'a Transform,Mut<'a,Visibility>)>){
-  if (!p.settings.gpu_lighting||p.isometric)&&self.state.visuals.is_empty(){if !self.state.light_signature.is_empty()||!self.state.solid_signature.is_empty(){self.state.light_signature.clear();self.state.solid_signature.clear();self.state.light_cache=Default::default();self.state.solid_cache=Default::default();self.state.scratch=Vec::new();}return;}
-  let mut alive=HashSet::new();let mut used_normals=HashSet::new();
+  if (!p.settings.gpu_lighting||p.isometric)&&self.state.visuals.is_empty(){if !self.state.light_signature.is_empty()||!self.state.solid_signature.is_empty(){self.state.light_signature.clear();self.state.solid_signature.clear();self.state.light_cache=Default::default();self.state.solid_cache=Default::default();self.state.scratch=Vec::new();}INDEX_NS.store(0,Ordering::Relaxed);SYNC_NS.store(0,Ordering::Relaxed);return;}
+  let sync_start=std::time::Instant::now();let mut alive=HashSet::new();let mut used_normals=HashSet::new();
   let enabled=p.settings.gpu_lighting && !p.isometric;
   let indexing_start=std::time::Instant::now();let lights:Vec<_>=if enabled {p.objects.iter().filter_map(|o|o.pro.light.as_ref().filter(|l|l.radius>0.).map(|l|(o,l))).collect()}else{vec![]};
   let light_key=|(o,l):&(&Object,&crate::Light)|(o.id,o.position.map(f32::to_bits),l.radius.to_bits());
@@ -67,7 +67,7 @@ impl GpuDraw<'_,'_> {
    let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
    let relevant=best_n(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
-    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
+    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size)+Vec2::splat(p.settings.shadow_softness.clamp(0.,32.));let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
     for (i,(_,b)) in blocks.into_iter().enumerate(){params.blockers[li*4+i]=b;}
    }
    let mut t=*transform;t.translation.x=center.x;t.translation.y=center.y;t.scale=Vec3::new(frame_size[0],frame_size[1],1.);
@@ -76,7 +76,7 @@ impl GpuDraw<'_,'_> {
    if *visibility!=Visibility::Hidden{*visibility=Visibility::Hidden;}
   }
   let obsolete:Vec<_>=self.state.visuals.keys().copied().filter(|id|!alive.contains(id)).collect();for id in obsolete{if let Some(v)=self.state.visuals.remove(&id){self.commands.entity(v.entity).despawn();}}
-  self.state.normals.retain(|p,_|used_normals.contains(p));self.state.scratch=candidates;
+  self.state.normals.retain(|p,_|used_normals.contains(p));self.state.scratch=candidates;SYNC_NS.store(sync_start.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
  }
 }
 
@@ -95,6 +95,8 @@ impl LightGrid{
 
 
 use std::sync::atomic::{AtomicU64,Ordering};
+static SYNC_NS:AtomicU64=AtomicU64::new(0);
+pub fn last_sync_cpu_ns()->u64{SYNC_NS.load(Ordering::Relaxed)}
 static INDEX_NS:AtomicU64=AtomicU64::new(0);
 pub fn last_index_cpu_ns()->u64{INDEX_NS.load(Ordering::Relaxed)}
 static LIGHT_REBUILDS:AtomicU64=AtomicU64::new(0);static LIGHT_HITS:AtomicU64=AtomicU64::new(0);static SOLID_REBUILDS:AtomicU64=AtomicU64::new(0);static SOLID_HITS:AtomicU64=AtomicU64::new(0);

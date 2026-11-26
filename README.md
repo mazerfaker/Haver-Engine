@@ -1,3 +1,7 @@
+# v0.7.30 — Group Timeline & Asset Database (source candidate)
+
+See `docs/RELEASE_0730.md`. Run QUICK_CHECK.bat and QUICK_TEST.bat before runtime testing. Rust compilation and GPU timing unverified.
+
 # v0.7.29 — Routing, Curve Controls & Index Cache (source candidate)
 
 See `docs/RELEASE_0729.md`. Start with QUICK_CHECK.bat and QUICK_TEST.bat. RUN_AUDIO_ROUTING_SCENE.bat tests the new routing and reverb. Rust compilation and runtime unverified.

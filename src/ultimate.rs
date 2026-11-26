@@ -24,3 +24,12 @@ pub fn instantiate(mut objects:Vec<Object>)->Vec<Object>{let map:std::collection
 #[cfg(test)]mod property_tests{use super::*;#[test]fn independent_axes_and_legacy(){let mut m=Motion::default();m.keys.push(Key{time:0.,position:[4.,8.],rotation:90.,smooth:false,bezier:None});m.property_channels.insert("Run".into(),[vec![ScalarKey{time:0.,value:0.,smooth:false,bezier:None},ScalarKey{time:2.,value:20.,smooth:false,bezier:None}],vec![],vec![ScalarKey{time:0.,value:15.,smooth:false,bezier:None}]]);let a=crate::Animation{looping:false,..Default::default()};assert_eq!(m.sample_clip("Run",1.,1.,&a),Some(([10.,8.],15.)));assert_eq!(m.sample_clip("Idle",1.,1.,&a),Some(([4.,8.],90.)));assert!(m.valid_clip_keys());assert!(serde_json::from_str::<Motion>("{}").unwrap().property_channels.is_empty());}}
 
 #[cfg(test)]mod bezier28{use super::*;#[test]fn old_keys_and_cubic(){let mut a:ScalarKey=serde_json::from_str(r#"{"time":0,"value":0,"smooth":false}"#).unwrap();assert!(a.bezier.is_none());a.bezier=Some([0.,0.]);let b=ScalarKey{time:1.,value:8.,smooth:false,bezier:None};assert_eq!(sample_scalar(&[a,b],0.5),Some(1.));}}
+
+/// Paste a relative-time group transactionally, rejecting ambiguous time collisions.
+pub fn paste_scalar_group(keys:&mut Vec<ScalarKey>,clip:&[ScalarKey],at:f32)->Result<Vec<usize>,String>{
+ if clip.is_empty()||keys.len()+clip.len()>1024||!at.is_finite(){return Err("Invalid clipboard or key budget".into());}
+ let first=clip.iter().map(|k|k.time).fold(f32::INFINITY,f32::min);let mut pending=Vec::with_capacity(clip.len());
+ for k in clip{let mut k=k.clone();k.time=at+(k.time-first);if !k.time.is_finite()||!(0. ..=3600.).contains(&k.time)||!k.value.is_finite()||keys.iter().chain(pending.iter()).any(|old:&ScalarKey|(old.time-k.time).abs()<0.0001){return Err("Paste overlaps an existing key or exceeds timeline".into());}pending.push(k);}
+ let start=keys.len();keys.extend(pending);Ok((start..keys.len()).collect())
+}
+#[cfg(test)]mod group30{use super::*;#[test]fn paste_relative_and_atomic(){let k=|time|ScalarKey{time,value:3.,smooth:false,bezier:Some([0.2,0.8])};let mut keys=vec![k(0.)];let clip=vec![k(2.),k(3.)];assert_eq!(paste_scalar_group(&mut keys,&clip,4.).unwrap(),vec![1,2]);assert_eq!(keys[2].time,5.);let before=keys.clone();assert!(paste_scalar_group(&mut keys,&clip,4.).is_err());assert_eq!(keys,before);}}
