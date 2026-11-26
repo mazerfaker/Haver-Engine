@@ -9,13 +9,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+      - name: Check modular feature matrix
+        shell: powershell
+        run: .\tools\qa_matrix.ps1
       - name: Build and verify portable package
         shell: powershell
         run: .\tools\build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7.8-Windows-portable
-          path: ForgeEngine-v0.7.8-Windows-portable.zip
+          name: ForgeEngine-v0.7.9-Windows-portable
+          path: ForgeEngine-v0.7.9-Windows-portable.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()

@@ -158,3 +158,6 @@ Wrapped toolbars, scrollable inspector, Frame Scene (Home), selection counter, b
 
 ## v0.7.8
 See [performance report](docs/PERFORMANCE_078.md). Minimal player: BUILD_MINIMAL_PLAYER.bat.
+
+## v0.7.9
+See [Engine Refinement and limitations](docs/PERFORMANCE_079.md). Run QA_MATRIX.bat before Windows packaging. Asset packing: tools/pack_assets.py.

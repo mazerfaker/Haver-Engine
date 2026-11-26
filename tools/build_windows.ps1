@@ -5,7 +5,7 @@ $root = (Get-Location).Path
 $log = Join-Path $root 'forge-check.log'
 $dist = Join-Path $root 'dist'
 $stage = Join-Path $root '.forge-package-stage'
-$zip = Join-Path $root 'ForgeEngine-v0.7.8-Windows-portable.zip'
+$zip = Join-Path $root 'ForgeEngine-v0.7.9-Windows-portable.zip'
 function Run-Native([string]$program, [string[]]$arguments) {
     "`n> $program $($arguments -join ' ')" | Tee-Object -FilePath $log -Append
     $old = $ErrorActionPreference
@@ -17,7 +17,7 @@ function Run-Native([string]$program, [string[]]$arguments) {
     if ($code -ne 0) { throw "$program failed (exit $code)" }
 }
 try {
-    Set-Content -LiteralPath $log -Value "Forge Engine v0.7.8 | $(Get-Date -Format o)"
+    Set-Content -LiteralPath $log -Value "Forge Engine v0.7.9 | $(Get-Date -Format o)"
     if (Test-Path "$dist/BUILD_OK.txt") { Remove-Item "$dist/BUILD_OK.txt" }
     if (!$CheckOnly -and (Test-Path $zip)) { Remove-Item $zip }
     if ($env:OS -ne 'Windows_NT') { throw 'Windows required for this build script.' }

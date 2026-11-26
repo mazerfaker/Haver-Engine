@@ -9,7 +9,7 @@ type Stamp = std::time::SystemTime;
 type Decoded = (PathBuf, Stamp, Result<image::RgbaImage,String>);
 pub(super) struct TextureCache {
     ready: HashMap<PathBuf,(Stamp,Handle<Image>,u64,u64)>,
- clock:u64,budget:u64,
+ clock:u64,budget:u64, pinned:std::collections::HashSet<PathBuf>,
     pending: HashMap<PathBuf,Stamp>, failed: HashMap<PathBuf,Stamp>,
     tx: std::sync::mpsc::SyncSender<(PathBuf,Stamp)>,
     rx: std::sync::Mutex<std::sync::mpsc::Receiver<Decoded>>,
@@ -22,7 +22,7 @@ impl Default for TextureCache {
    let result=(|| -> Result<image::RgbaImage,String> {let mut reader=image::ImageReader::open(&path).map_err(|e|e.to_string())?;let mut limits=image::Limits::default();limits.max_image_width=Some(8192);limits.max_image_height=Some(8192);limits.max_alloc=Some(128*1024*1024);reader.limits(limits);reader.decode().map(|img|img.to_rgba8()).map_err(|e|e.to_string())})();
    if done.send((path,stamp,result)).is_err(){break;}
   });
-  Self{clock:0,budget:128*1024*1024,ready:HashMap::new(),pending:HashMap::new(),failed:HashMap::new(),tx,rx:std::sync::Mutex::new(rx)}
+  Self{clock:0,budget:128*1024*1024,pinned:Default::default(),ready:HashMap::new(),pending:HashMap::new(),failed:HashMap::new(),tx,rx:std::sync::Mutex::new(rx)}
  }
 }
 impl TextureCache {
@@ -32,8 +32,14 @@ impl TextureCache {
    self.pending.remove(&path);
    match result {Ok(rgba)=>{
     let bytes=u64::from(rgba.width())*u64::from(rgba.height())*4;
-    let used:u64=self.ready.iter().filter(|(k,_)|*k!=&path).map(|(_,v)|v.2).sum();
-    if bytes>self.budget || used.saturating_add(bytes)>self.budget {self.failed.insert(path,stamp);continue;}
+    if bytes>self.budget {self.failed.insert(path,stamp);continue;}
+    let mut used:u64=self.ready.iter().filter(|(k,_)|*k!=&path).map(|(_,v)|v.2).sum();
+    while used.saturating_add(bytes)>self.budget {
+     let victim=self.ready.iter().filter(|(k,_)|*k!=&path&&!self.pinned.contains(*k)).min_by_key(|(_,v)|v.3).map(|(k,_)|k.clone());
+     let Some(victim)=victim else {break;};
+     if let Some(v)=self.ready.remove(&victim){used=used.saturating_sub(v.2);EVICTIONS.fetch_add(1,Ordering::Relaxed);}
+    }
+    if used.saturating_add(bytes)>self.budget {self.failed.insert(path,stamp);continue;}
     let img=Image::new_fill(Extent3d{width:rgba.width(),height:rgba.height(),depth_or_array_layers:1},TextureDimension::D2,rgba.as_raw(),TextureFormat::Rgba8UnormSrgb,RenderAssetUsages::default());
     self.failed.remove(&path);self.ready.insert(path,(stamp,images.add(img),bytes,self.clock));
    },Err(_)=>{self.failed.insert(path,stamp);}}
@@ -53,13 +59,16 @@ pub(super) fn sync_viewport(mut commands:Commands,e:Res<Editor>,target:Res<ViewT
  let [w,h]=e.view_size;if images.get(&target.0).is_some_and(|img|img.width()!=w||img.height()!=h){if let Some(img)=images.get_mut(&target.0){img.resize(Extent3d{width:w,height:h,depth_or_array_layers:1});}}
  if let Projection::Orthographic(p)=&mut *projection{p.scale=1./e.zoom;}
  ct.translation.x=-e.pan.x/e.zoom;ct.translation.y=e.pan.y/e.zoom;
- let budget=u64::from(e.master.settings.cache_mib.clamp(32,1024))*1048576;if budget!=cache.budget{cache.budget=budget;cache.failed.clear();while cache.ready.values().map(|v|v.2).sum::<u64>()>budget{let key=cache.ready.iter().min_by_key(|(_,v)|v.3).map(|(k,_)|k.clone());if let Some(k)=key{cache.ready.remove(&k);EVICTIONS.fetch_add(1,Ordering::Relaxed);}else{break;}}}cache.poll(&mut images); let project=e.play.as_ref().unwrap_or(&e.project);let time=if e.play.is_some(){e.sim.elapsed}else{e.preview};
+ let budget=u64::from(e.master.settings.cache_mib.clamp(32,1024))*1048576;if budget!=cache.budget{cache.budget=budget;cache.failed.clear();while cache.ready.values().map(|v|v.2).sum::<u64>()>budget{let key=cache.ready.iter().min_by_key(|(_,v)|v.3).map(|(k,_)|k.clone());if let Some(k)=key{cache.ready.remove(&k);EVICTIONS.fetch_add(1,Ordering::Relaxed);}else{break;}}}let project=e.play.as_ref().unwrap_or(&e.project);let time=if e.play.is_some(){e.sim.elapsed}else{e.preview};
  let mut ordered=project.objects.iter().filter(|o|!o.camera).collect::<Vec<_>>();ordered.sort_by(|a,b|a.layer.cmp(&b.layer).then_with(||if project.isometric{project_point(b.position,true)[1].total_cmp(&project_point(a.position,true)[1])}else{std::cmp::Ordering::Equal}));
  let active:std::collections::HashSet<_>=ordered.iter().map(|o|o.id).collect();
  let existing:HashMap<_,_>=sprites.iter().map(|(entity,id,_,_)|(id.0,entity)).collect();
  for (entity,id,_,_) in &mut sprites{if !active.contains(&id.0){commands.entity(entity).despawn();}}
  let paths:std::collections::HashSet<_>=ordered.iter().filter_map(|o|e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel))).collect();
+ let new_pins:std::collections::HashSet<_>=ordered.iter().filter(|o|e.workspace.prefs.camera || e.master.game || forge_engine::spatial::visible(forge_engine::sprite_center(o,project.isometric),o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)])).filter_map(|o|e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel))).collect();
+ if new_pins!=cache.pinned {cache.failed.clear();cache.pinned=new_pins;}
  let before=cache.ready.len();cache.ready.retain(|path,_|paths.contains(path));if before!=cache.ready.len(){EVICTIONS.fetch_add((before-cache.ready.len()) as u64,Ordering::Relaxed);cache.failed.clear();}cache.failed.retain(|path,_|paths.contains(path));
+ cache.poll(&mut images);
  USED.store(cache.ready.values().map(|v|v.2).sum(),Ordering::Relaxed);for (i,o) in ordered.iter().enumerate(){let pos=forge_engine::sprite_center(o,project.isometric);let transform=Transform::from_xyz(pos[0],pos[1],i as f32*0.01).with_rotation(Quat::from_rotation_z(o.rotation.to_radians()));let c=forge_engine::lit_color(o,project);let mut sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],c[3]),Vec2::from_array(o.size));
  let visible=e.workspace.prefs.camera || e.master.game || forge_engine::spatial::visible(pos,o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)]);if visible {if let Some(path)=e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel)) {if let Some(handle)=cache.get(&path){sprite.image=handle.clone();if let Some(img)=images.get(&handle){let uv=o.animation.uv(time);let size=img.size().as_vec2();sprite.rect=Some(Rect::from_corners(Vec2::from_array(uv[0])*size,Vec2::from_array(uv[2])*size));}}}}
  if let Some(entity)=existing.get(&o.id){if let Ok((_,_,mut s,mut t))=sprites.get_mut(*entity){*s=sprite;*t=transform;}}else{commands.spawn((SceneSprite(o.id),sprite,transform));}}

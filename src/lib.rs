@@ -96,3 +96,5 @@ pub mod performance;
 pub mod spatial;
 
 pub mod modules;
+
+pub mod chunk_plan;
