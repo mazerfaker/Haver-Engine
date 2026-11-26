@@ -193,3 +193,6 @@ See [release report and Windows QA](docs/RELEASE_0716.md). Default CPU lighting 
 
 ## v0.7.17 — GPU particle runtime and editor refinements
 See [release notes](docs/RELEASE_0717.md). Start with QUICK_CHECK.bat, then QUICK_BUILD.bat. Open examples/gpu_particles/project.forge.json in the editor, or use RUN_GPU_PARTICLES_SCENE.bat. Existing scenes use previous defaults. GPU runtime is experimental; no Windows build was performed in the authoring environment.
+
+## v0.7.18 — UI Studio & Workspace
+Open **UI Studio** in the editor toolbar (outside Play) for hierarchy, responsive layout previews, anchors, and group editing. Enable canvas placement for grouped HUD explicitly to render group members at their anchors in Player; old scenes keep their existing group windows. `RUN_UI_STUDIO_SCENE.bat` launches the example; Studio menu contains workspace presets. See `docs/RELEASE_0718.md` for limitations and validation steps.

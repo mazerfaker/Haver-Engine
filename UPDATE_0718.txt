@@ -1,0 +1,2 @@
+Forge Engine 0.7.18 update from 0.7.17
+Back up your current project/source folder. Extract directly into the existing source folder (where Cargo.toml is), replacing files. Do not delete Cargo.lock or target. Run QUICK_CHECK.bat, QUICK_BUILD.bat, RUN_EDITOR_DEBUG.bat. Run the prior GPU fixtures and RUN_UI_STUDIO_SCENE.bat. v0.7.17 and v0.7.18 are not yet confirmed on Windows; keep your v0.7.15 portable backup.

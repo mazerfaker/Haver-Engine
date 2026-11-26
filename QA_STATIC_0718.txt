@@ -1,0 +1,10 @@
+Forge Engine 0.7.18 static QA
+PASS: campaign validation (4 levels, 214 objects)
+PASS: asset packaging tests (2/2)
+PASS: GPU fixture tests (2/2)
+PASS: UI fixture/reference layout tests (2/2)
+PASS: JSON and TOML parsing
+PASS: previous example files preserved byte-for-byte (31)
+PASS: previous WGSL shaders preserved byte-for-byte (8)
+PASS: dependency and profile configuration unchanged
+NOT RUN: Rust compilation and tests, Windows execution, WGSL validation/runtime, FPS/RAM/VRAM, EXE

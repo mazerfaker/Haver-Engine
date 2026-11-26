@@ -140,3 +140,17 @@ pub mod combat;
 
 #[cfg(feature="lighting")] #[allow(dead_code)] pub mod gpu_scene; // ShaderType derive generates unused check helpers
 #[cfg(feature="lighting")] pub mod gpu_particles;
+
+/// Normalize explicitly edited HUD group paths to the runtime's eight-level limit.
+pub fn hud_group_path(path:&str)->String {path.split('/').map(str::trim).filter(|s|!s.is_empty()).take(8).collect::<Vec<_>>().join("/")}
+/// Convert a drag delta from preview points into normalized screen anchors.
+pub fn move_hud_widget(w:&mut Widget,delta:[f32;2],viewport:[f32;2],design:[u32;2]) {
+ if viewport.iter().any(|v|!v.is_finite()||*v<=0.)||delta.iter().any(|v|!v.is_finite()){return;}
+ let rect=adaptive_widget(w,viewport,design);
+ for i in 0..2 {w.anchor[i]=((rect[i]+delta[i])/viewport[i]).clamp(0.,((viewport[i]-rect[i+2])/viewport[i]).max(0.));}
+}
+#[cfg(test)] mod hud_studio_tests{use super::*;
+ #[test] fn group_paths(){assert_eq!(hud_group_path(" / HUD // Inventory / Slots / "),"HUD/Inventory/Slots");assert_eq!(hud_group_path("1/2/3/4/5/6/7/8/9"),"1/2/3/4/5/6/7/8");}
+ #[test] fn drag_stays_on_canvas(){let mut w=Widget{anchor:[0.5,0.5],size:[120.,44.],..Default::default()};move_hud_widget(&mut w,[900.,-900.],[320.,180.],[640,360]);let r=adaptive_widget(&w,[320.,180.],[640,360]);assert_eq!(r,[260.,0.,60.,22.]);}
+ #[test] fn legacy_hud_mode(){let s:GameSettings=serde_json::from_str("{}").unwrap();assert!(!s.hud_canvas_groups);}
+}
