@@ -104,3 +104,5 @@ pub fn adaptive_widget(w:&Widget,viewport:[f32;2],design:[u32;2])->[f32;4]{let s
 #[cfg(test)] mod adaptive_tests{use super::*;#[test]fn fits(){let w=Widget{anchor:[1.,1.],..Default::default()};let r=adaptive_widget(&w,[320.,180.],[640,360]);assert!(r[0]+r[2]<=320.&&r[1]+r[3]<=180.);}}
 
 pub fn animation_time(o:&Object,elapsed:f32)->f32 {if o.clip_name=="Attack" {o.pro.variables.get("forge_attack_time").copied().unwrap_or(elapsed)}else{elapsed}}
+
+pub mod combat;

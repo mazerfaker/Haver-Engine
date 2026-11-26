@@ -169,3 +169,6 @@ See [performance report](docs/PERFORMANCE_078.md). Minimal player: BUILD_MINIMAL
 
 ## v0.7.9
 See [Engine Refinement and limitations](docs/PERFORMANCE_079.md). Run QA_MATRIX.bat before Windows packaging. Asset packing: tools/pack_assets.py.
+
+## v0.7.12
+See [release notes](docs/RELEASE_0712.md). Experimental source; no compiled EXE.

@@ -17,7 +17,7 @@ impl Default for Sound {fn default()->Self{Self{path:String::new(),volume:1.,mus
 impl Default for Widget {fn default()->Self{Self{text:"Button".into(),action:"jump".into(),anchor:[0.8,0.8],size:[120.,44.]}}}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct GameSettings {pub production:crate::ProductionSettings,pub rapier:bool,pub ambient:f32,pub master:f32,pub music:f32,pub sfx:f32,pub widgets:Vec<Widget>}
 impl Default for GameSettings {fn default()->Self{Self{production:Default::default(),rapier:false,ambient:1.,master:1.,music:1.,sfx:1.,widgets:vec![]}}}
-#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct ProComponents {pub physics:PhysicsPro,pub light:Option<Light>,pub emitter:Option<Emitter>,pub sound:Option<Sound>,pub variables:BTreeMap<String,f32>,pub graph_positions:Vec<[f32;2]>}
+#[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct ProComponents {pub combat:Option<crate::combat::Combat>,pub physics:PhysicsPro,pub light:Option<Light>,pub emitter:Option<Emitter>,pub sound:Option<Sound>,pub variables:BTreeMap<String,f32>,pub graph_positions:Vec<[f32;2]>}
 /// Persistent Rapier world; topology is rebuilt only when body configuration changes.
 #[cfg(feature="physics-rapier")]
 use rapier2d::prelude::*;
