@@ -8,6 +8,6 @@ pub(super) fn icon(ui:&mut egui::Ui,index:usize){
 }
 pub(super) fn header(ui:&mut egui::Ui,index:usize,title:&str){
  ui.horizontal(|ui|{icon(ui,index);
-  let response=ui.add(egui::Label::new(egui::RichText::new(title).strong()).sense(egui::Sense::click_and_drag()));response.dnd_set_drag_payload(index);
+  let response=ui.add(egui::Label::new(egui::RichText::new(title).strong().size(15.)).sense(egui::Sense::click_and_drag()));response.dnd_set_drag_payload(index);
  });
 }

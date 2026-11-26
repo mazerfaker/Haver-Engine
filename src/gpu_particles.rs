@@ -42,7 +42,7 @@ fn prepare(device:Res<RenderDevice>,pipeline:Res<Pipeline>,buffers:Option<Res<Bu
 struct SimulationNode;
 impl render_graph::Node for SimulationNode{fn run(&self,_:&mut render_graph::RenderGraphContext,ctx:&mut RenderContext,w:&World)->Result<(),render_graph::NodeRunError>{
  let Some(buffers)=w.get_resource::<Buffers>()else{return Ok(());};if buffers.steps==0||buffers.items.is_empty(){return Ok(());}let bindings=w.resource::<Bindings>();let p=w.resource::<Pipeline>();let Some(pipeline)=w.resource::<PipelineCache>().get_compute_pipeline(p.id)else{return Ok(());};
- let mut pass=ctx.command_encoder().begin_compute_pass(&ComputePassDescriptor{label:Some("forge scene particles"),..default()});pass.set_pipeline(pipeline);for (handle,n) in &buffers.items{if let Some(bind)=bindings.0.get(&handle.id()){pass.set_bind_group(0,bind,&[]);for _ in 0..buffers.steps{pass.dispatch_workgroups(n.div_ceil(64),1,1);}}}Ok(())
+ use bevy::render::diagnostic::RecordDiagnostics;let diagnostics=ctx.diagnostic_recorder();let span=diagnostics.time_span(ctx.command_encoder(),"forge_particle_compute");let mut pass=ctx.command_encoder().begin_compute_pass(&ComputePassDescriptor{label:Some("forge scene particles"),..default()});pass.set_pipeline(pipeline);for (handle,n) in &buffers.items{if let Some(bind)=bindings.0.get(&handle.id()){pass.set_bind_group(0,bind,&[]);for _ in 0..buffers.steps{pass.dispatch_workgroups(n.div_ceil(64),1,1);}}}drop(pass);span.end(ctx.command_encoder());Ok(())
 }}
 pub struct GpuParticlesPlugin;
 impl Plugin for GpuParticlesPlugin{fn build(&self,app:&mut App){

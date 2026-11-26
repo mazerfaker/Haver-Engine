@@ -33,3 +33,11 @@ pub fn paste_scalar_group(keys:&mut Vec<ScalarKey>,clip:&[ScalarKey],at:f32)->Re
  let start=keys.len();keys.extend(pending);Ok((start..keys.len()).collect())
 }
 #[cfg(test)]mod group30{use super::*;#[test]fn paste_relative_and_atomic(){let k=|time|ScalarKey{time,value:3.,smooth:false,bezier:Some([0.2,0.8])};let mut keys=vec![k(0.)];let clip=vec![k(2.),k(3.)];assert_eq!(paste_scalar_group(&mut keys,&clip,4.).unwrap(),vec![1,2]);assert_eq!(keys[2].time,5.);let before=keys.clone();assert!(paste_scalar_group(&mut keys,&clip,4.).is_err());assert_eq!(keys,before);}}
+
+/// Move selected keys as a transaction, preserving time intervals and avoiding collisions.
+pub fn move_scalar_group(keys:&mut [ScalarKey],group:&[usize],delta:f32,limit:f32)->bool{
+ if group.is_empty()||!delta.is_finite()||!limit.is_finite()||limit<=0.||group.iter().any(|&i|i>=keys.len()){return false;}
+ for &i in group{let t=keys[i].time+delta;if !t.is_finite()||t<0.||t>limit||keys.iter().enumerate().any(|(j,k)|!group.contains(&j)&&(t-k.time).abs()<0.0001){return false;}}
+ for (i,k) in keys.iter_mut().enumerate(){if group.contains(&i){k.time+=delta;}}true
+}
+#[cfg(test)]mod move31{use super::*;#[test]fn preserves_spacing_and_rejects_collision(){let k=|time|ScalarKey{time,value:1.,smooth:false,bezier:None};let mut keys=vec![k(0.),k(1.),k(3.)];assert!(move_scalar_group(&mut keys,&[0,1],1.,4.));assert_eq!(keys[1].time-keys[0].time,1.);let old=keys.clone();assert!(!move_scalar_group(&mut keys,&[0,1],1.,4.));assert_eq!(keys,old);}}

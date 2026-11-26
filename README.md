@@ -1,4 +1,8 @@
-# v0.7.30 — Group Timeline & Asset Database (source candidate)
+# v0.7.31 — Timeline, Asset Cache & Render Diagnostics (source candidate)
+
+See RELEASE_0731.md for changes, limitations and Windows acceptance checks. Start with QUICK_CHECK.bat and QUICK_TEST.bat.
+
+# v0.7.31 — Group Timeline & Asset Database (source candidate)
 
 See `docs/RELEASE_0730.md`. Run QUICK_CHECK.bat and QUICK_TEST.bat before runtime testing. Rust compilation and GPU timing unverified.
 
