@@ -1,0 +1,16 @@
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
+PASS: 5 JSON files parse
+PASS: Cargo.toml parses; only package version changed
+PASS: all demo files unchanged except the single semantic looping fix in level4
+PASS: 26 unique f32 warning sites identified from original log and edited by coordinate
+PASS: 3 new Rust regression tests present (not executed)
+PASS: no remaining references to removed unused editor fields/functions
+NOT RUN: Rust compilation, Rust tests, PowerShell scripts, WGSL rendering, GUI, EXE size and FPS (toolchain unavailable).

@@ -7,6 +7,10 @@ def validate(file):
      uid=uuid.UUID(o['id']); assert uid not in ids; ids.add(uid)
      assert o['name'] not in names; names.add(o['name'])
      assert all(s>0 for s in o['size'])
+     animations = ([o['animation']] if 'animation' in o else []) + list(o.get('clips', {}).values())
+     for anim in animations:
+         assert {'columns','rows','frames','fps','looping'} <= anim.keys(), (file.name, o['name'], 'missing animation fields')
+         assert isinstance(anim['looping'], bool), (file.name, o['name'], 'invalid looping')
      for rel in [o.get('sprite'),o.get('production',{}).get('particle_texture'),(o.get('pro',{}).get('sound') or {}).get('path')]:
          if not rel: continue
          path=root/rel; assert path.is_file() and path.resolve().is_relative_to(root.resolve())

@@ -1,6 +1,8 @@
 use serde::{Deserialize,Serialize};
-use std::collections::{BTreeMap,HashMap};
-use crate::{Project,Body,Object};
+use std::collections::BTreeMap;
+#[cfg(feature="physics-rapier")] use std::collections::HashMap;
+use crate::{Project,Object};
+#[cfg(feature="physics-rapier")] use crate::Body;
 use uuid::Uuid;
 #[derive(Clone,Copy,Debug,Default,PartialEq,Serialize,Deserialize)] pub enum Shape { #[default] Box, Circle, Capsule }
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct PhysicsPro {pub shape:Shape,pub friction:f32,pub mass:f32,pub lock_rotation:bool}

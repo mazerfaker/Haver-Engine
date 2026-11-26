@@ -2043,7 +2043,8 @@
         "columns": 1,
         "rows": 1,
         "frames": 1,
-        "fps": 1.0
+        "fps": 1.0,
+        "looping": true
       },
       "clips": {},
       "pro": {

@@ -5,20 +5,25 @@ $root = (Get-Location).Path
 $log = Join-Path $root 'forge-check.log'
 $dist = Join-Path $root 'dist'
 $stage = Join-Path $root '.forge-package-stage'
-$zip = Join-Path $root 'ForgeEngine-v0.7.14-Windows-portable.zip'
+$zipName = if ($Profile -eq 'release') { 'ForgeEngine-v0.7.15-Windows-portable.zip' } else { "ForgeEngine-v0.7.15-Windows-$Profile-portable.zip" }
+$zip = Join-Path $root $zipName
+function Write-Log([string]$line) {
+    Write-Host $line
+    Add-Content -LiteralPath $log -Value $line -Encoding UTF8
+}
 function Run-Native([string]$program, [string[]]$arguments) {
-    "`n> $program $($arguments -join ' ')" | Tee-Object -FilePath $log -Append
+    Write-Log "`n> $program $($arguments -join ' ')"
     $old = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        & $program @arguments 2>&1 | ForEach-Object { "$($_)" } | Tee-Object -FilePath $log -Append
+        & $program @arguments 2>&1 | ForEach-Object { Write-Log "$($_)" }
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = $old }
     if ($code -ne 0) { throw "$program failed (exit $code)" }
 }
 try {
-    Set-Content -LiteralPath $log -Value "Forge Engine v0.7.14 | $(Get-Date -Format o)"
-    if (Test-Path "$dist/BUILD_OK.txt") { Remove-Item "$dist/BUILD_OK.txt" }
+    Set-Content -LiteralPath $log -Encoding UTF8 -Value "Forge Engine v0.7.15 | $(Get-Date -Format o) | profile=$Profile | CheckOnly=$CheckOnly"
+    if (!$CheckOnly -and (Test-Path "$dist/BUILD_OK.txt")) { Remove-Item "$dist/BUILD_OK.txt" }
     if (!$CheckOnly -and (Test-Path $zip)) { Remove-Item $zip }
     if ($env:OS -ne 'Windows_NT') { throw 'Windows required for this build script.' }
     foreach ($cmd in @('rustc','cargo')) { if (!(Get-Command $cmd -ErrorAction SilentlyContinue)) { throw "Missing $cmd. Install Rust MSVC and Visual Studio C++ Build Tools." } }
@@ -27,9 +32,22 @@ try {
     $target = 'x86_64-pc-windows-msvc'
     $env:CARGO_TARGET_DIR = Join-Path $root 'target'
     if (!(Test-Path 'Cargo.lock')) { Run-Native 'cargo' @('generate-lockfile') }
+    else {
+        # v0.7.15 changes the package version only, not dependency constraints.
+        # Keep resolved dependencies when applying the upgrade over v0.7.14.
+        $lockPath = Join-Path $root 'Cargo.lock'
+        $lockText = [IO.File]::ReadAllText($lockPath)
+        $pattern = '(?m)(^\[\[package\]\]\r?\nname = "forge_engine"\r?\nversion = ")0\.7\.14(")'
+        if ([regex]::Matches($lockText,$pattern).Count -eq 1) {
+            $updated = [regex]::Replace($lockText,$pattern,'${1}0.7.15${2}')
+            [IO.File]::WriteAllText($lockPath,$updated,[Text.UTF8Encoding]::new($false))
+            Write-Log 'Migrated local package version in Cargo.lock; dependency pins unchanged.'
+        }
+    }
     Run-Native 'cargo' @('check','--locked','--all-targets','--target',$target)
     Run-Native 'cargo' @('check','--locked','--no-default-features','--bin','forge_player','--target',$target)
     Run-Native 'cargo' @('test','--locked','--all-targets','--target',$target)
+    Run-Native 'cargo' @('test','--locked','--no-default-features','--lib','--target',$target)
     Run-Native 'cargo' @('build','--locked','--bins','--target',$target)
     $debug = Join-Path $env:CARGO_TARGET_DIR "$target/debug"
     $demo = Join-Path $root 'examples/signal_lost'
@@ -39,7 +57,7 @@ try {
         Run-Native "$debug/forge_player.exe" @('--smoke',$scene)
         Run-Native "$debug/forge_editor.exe" @('--editor-qa',$scene)
     }
-    if ($CheckOnly) { 'CHECK PASS' | Tee-Object -FilePath $log -Append; exit 0 }
+    if ($CheckOnly) { Write-Log 'CHECK PASS'; exit 0 }
     Run-Native 'cargo' @('build','--locked','--profile',$Profile,'--bins','--target',$target)
     $release = Join-Path $env:CARGO_TARGET_DIR "$target/$Profile"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
@@ -55,16 +73,18 @@ try {
     Copy-Item 'Cargo.lock' "$stage/Cargo.lock"
     # Test release player against the actual staged resources, not source paths.
     foreach ($name in @('project.forge.json','level2.forge.json','level3.forge.json','level4.forge.json')) { Run-Native "$stage/SignalLost/ForgePlayer.exe" @('--smoke',"$stage/SignalLost/$name") }
-    Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content "$stage/build-sizes.json"
+    Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-sizes.json"
+    $info = [ordered]@{version='0.7.15';profile=$Profile;target=$target;editor_bytes=(Get-Item "$stage/ForgeEngine.exe").Length;player_bytes=(Get-Item "$stage/ForgePlayer.exe").Length}
+    $info | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-info.json"
     Set-Content "$stage/BUILD_OK.txt" 'Compilation, unit tests, headless demo and editor QA passed. GUI launch not tested.'
     Copy-Item $log "$stage/forge-check.log"
     Compress-Archive -Path "$stage/*" -DestinationPath $zip -Force
     if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
     Move-Item $stage $dist
-    "BUILD PASS: $zip" | Tee-Object -FilePath $log -Append
+    Write-Log "BUILD PASS: $zip"
     exit 0
 } catch {
-    "BUILD FAILED: $_" | Tee-Object -FilePath $log -Append
+    Write-Log "BUILD FAILED: $_"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     if (!$CheckOnly -and (Test-Path $zip)) { Remove-Item $zip -Force }
     exit 1

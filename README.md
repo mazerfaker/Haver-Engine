@@ -183,3 +183,6 @@ See [release notes](docs/RELEASE_0713.md). Added top docking and draggable vecto
 - Workspace: explicit Save dock command; existing four docking edges and floating panels retained.
 - GPU lab and CPU fallback unchanged. No Auto Rig.
 - Windows compilation and graphical testing remain unverified; see docs/RELEASE_0714.md.
+
+## v0.7.15 — Stability
+See [release notes](docs/RELEASE_0715.md) and [Windows build guide](docs/WINDOWS_BUILD.md). Includes v0.7.14 level-four hotfix, explicit f32 typing at compiler-diagnosed locations, feature-specific warning cleanup, scene deserialization regression tests, active cache metrics, and UTF-8 build logs. Run CHECK_WINDOWS.bat, then BUILD_WINDOWS.bat. GPU_CHECK.bat checks the opt-in lab Rust target; actual WGSL rendering still needs a graphical run.

@@ -60,6 +60,32 @@ impl Project {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn campaign_scenes_deserialize_and_roundtrip() {
+        let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/signal_lost");
+        for name in ["project.forge.json","level2.forge.json","level3.forge.json","level4.forge.json"] {
+            let p=Project::load(&root.join(name)).unwrap_or_else(|e|panic!("{name}: {e}"));
+            assert_eq!(p.objects.iter().filter(|o|o.player).count(),1,"{name}");
+            let json=serde_json::to_vec(&p).unwrap();
+            let restored:Project=serde_json::from_slice(&json).unwrap();
+            assert_eq!(p,restored,"{name}");
+        }
+    }
+    #[test] fn legacy_animation_without_looping() {
+        let base=r#"{"columns":1,"rows":1,"frames":1,"fps":8}"#;
+        let a:Animation=serde_json::from_str(base).unwrap();
+        assert_eq!(a,Animation::default());
+        let mut value:serde_json::Value=serde_json::from_str(base).unwrap();
+        value["looping"]=serde_json::json!(false);
+        assert!(!serde_json::from_value::<Animation>(value.clone()).unwrap().looping);
+        value["looping"]=serde_json::json!("false");
+        assert!(serde_json::from_value::<Animation>(value).is_err());
+    }
+    #[test] fn legacy_named_clip_without_looping() {
+        let mut value=serde_json::to_value(Project::default()).unwrap();
+        value["objects"][0]["clips"]["Idle"]=serde_json::json!({"columns":1,"rows":1,"frames":1,"fps":8});
+        let restored:Project=serde_json::from_value(value).unwrap();
+        assert!(restored.objects[0].clips["Idle"].looping);
+    }
     #[test] fn roundtrip() { let p = Project::default(); let f = std::env::temp_dir().join(format!("{}.json", Uuid::new_v4())); p.save(&f).unwrap(); assert_eq!(p, Project::load(&f).unwrap()); fs::remove_file(f).unwrap(); }
 }
 
