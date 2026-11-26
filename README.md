@@ -1,3 +1,7 @@
+# v0.7.39 — Float32 Audio & Asset Transactions
+
+See [release notes](docs/RELEASE_0739.md) for changes, offline relocation usage and limitations. Source candidate; Rust compilation pending.
+
 # v0.7.38 — Onion Skin & Mixed PCM (source candidate)
 
 See `docs/RELEASE_0738.md`. Start with QUICK_CHECK.bat and QUICK_TEST.bat.

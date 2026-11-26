@@ -19,18 +19,18 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
 @fragment fn fragment(mesh:VertexOutput)->@location(0) vec4<f32>{
  let uv=mix(p.uv.xy,p.uv.zw,mesh.uv);
  let base=textureSample(albedo,albedo_sampler,uv)*p.tint;
- let raw=textureSample(normals,normal_sampler,uv).xyz*2.0-1.0;
- // Sample both textures before varying control flow to preserve derivative uniformity.
+ // Normal maps use a single mip; explicit LOD avoids derivative-uniformity requirements.
  if base.a<=0.0{return vec4<f32>(0.0);}
  if p.light[0].z<=0.0 && p.light[1].z<=0.0 && p.light[2].z<=0.0 {return vec4<f32>(base.rgb*p.rotation.z,base.a);}
+ let raw=textureSampleLevel(normals,normal_sampler,uv,0.0).xyz*2.0-1.0;
  let n=normalize(vec3<f32>(rotate(vec2<f32>(raw.x,-raw.y)),max(raw.z,0.001)));
  let local=vec2<f32>(mesh.uv.x-0.5,0.5-mesh.uv.y)*p.geometry.zw;
  let world=p.geometry.xy+rotate(local);
  var shade=vec3<f32>(p.rotation.z);
  for(var li:u32=0u;li<3u;li=li+1u){let light=p.light[li];if light.z<=0.0{continue;}let delta=light.xy-world;let dist2=dot(delta,delta);if dist2>=light.z*light.z{continue;}let dist=sqrt(dist2);
-  let perpendicular=vec2<f32>(-delta.y,delta.x)/max(dist,0.001);var visible=0.0;let first=p.blockers[li*4u];let second=p.blockers[li*4u+1u];let third=p.blockers[li*4u+2u];let fourth=p.blockers[li*4u+3u];let any_blocker=(first.z>first.x&&first.w>first.y)||(second.z>second.x&&second.w>second.y)||(third.z>third.x&&third.w>third.y)||(fourth.z>fourth.x&&fourth.w>fourth.y);
+  var visible=0.0;let first=p.blockers[li*4u];let second=p.blockers[li*4u+1u];let third=p.blockers[li*4u+2u];let fourth=p.blockers[li*4u+3u];let any_blocker=(first.z>first.x&&first.w>first.y)||(second.z>second.x&&second.w>second.y)||(third.z>third.x&&third.w>third.y)||(fourth.z>fourth.x&&fourth.w>fourth.y);
   let samples=select(1u,5u,p.rotation.w>0.0);
-  if !any_blocker{visible=f32(samples);}else{for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)*0.5-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;break;}}visible+=select(1.0,0.0,hit);}}
+  if !any_blocker{visible=f32(samples);}else{let perpendicular=vec2<f32>(-delta.y,delta.x)/max(dist,0.001);for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)*0.5-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;break;}}visible+=select(1.0,0.0,hit);}}
   visible/=f32(samples);let diffuse=max(dot(n,normalize(vec3<f32>(delta,light.z*0.25))),0.0);
   let attenuation=max(0.0,1.0-dist/light.z);shade+=p.light_color[li].xyz*(diffuse*attenuation*visible*light.w);
  }

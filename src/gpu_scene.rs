@@ -54,22 +54,22 @@ impl GpuDraw<'_,'_> {
    if self.state.white.is_none(){self.state.white=Some(pixel(&mut self.images,[255;4],TextureFormat::Rgba8UnormSrgb));}let white=self.state.white.as_ref().unwrap().clone();
    if self.state.flat.is_none(){self.state.flat=Some(pixel(&mut self.images,[128,128,255,255],TextureFormat::Rgba8Unorm));}let flat=self.state.flat.as_ref().unwrap().clone();
    if self.state.quad.is_none(){self.state.quad=Some(self.meshes.add(Rectangle::new(1.,1.)));}let quad=self.state.quad.as_ref().unwrap().clone();
-   let normal=if lights.is_empty(){flat}else if let Some((root,rel))=root.zip(o.production.normal_map.as_deref()) {
-    let key=root.join(rel);used_normals.insert(key.clone());
-    // Limit resident distinct normal maps; oversized or unavailable maps use flat normal.
-    if !self.state.normals.contains_key(&key)&&self.state.normals.len()<8 {let loaded=load_normal(root,rel,&mut self.images);self.state.normals.insert(key.clone(),loaded);}
-    self.state.normals.get(&key).cloned().flatten().unwrap_or(flat)
-   }else{flat};
    let albedo=if o.sprite.is_some(){sprite.image.clone()}else{white};
    let anim_time=crate::animation_time(o,elapsed);let uv=if o.sprite.is_some(){o.animation.uv(anim_time)}else{[[0.,0.],[1.,0.],[1.,1.],[0.,1.]]};
    let (center,frame_size)=crate::sprite_frame_geometry(o,false,anim_time);let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
    let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,anim_time,tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
-   let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
+   let strength=|(s,l):&(&Object,&crate::Light)|{if tint[3]==0{return 0.;}let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
    let relevant=best_n_fixed::<_,3>(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().flatten().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
     let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size).max(Vec2::splat(frame_size[0].hypot(frame_size[1])))+Vec2::splat(p.settings.shadow_softness.clamp(0.,32.));let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n_fixed::<_,4>(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
     for (i,(_,b)) in blocks.into_iter().flatten().enumerate(){params.blockers[li*4+i]=b;}
    }
+   let normal=if lights.is_empty(){flat}else if params.light.iter().all(|l|l.z<=0.){flat}else if let Some((root,rel))=root.zip(o.production.normal_map.as_deref()) {
+    let key=root.join(rel);used_normals.insert(key.clone());
+    // Limit resident distinct normal maps; oversized or unavailable maps use flat normal.
+    if !self.state.normals.contains_key(&key)&&self.state.normals.len()<8 {let loaded=load_normal(root,rel,&mut self.images);self.state.normals.insert(key.clone(),loaded);}
+    self.state.normals.get(&key).cloned().flatten().unwrap_or(flat)
+   }else{flat};
    let mut t=*transform;t.translation.x=center.x;t.translation.y=center.y;t.scale=Vec3::new(frame_size[0],frame_size[1],1.);
    if let Some(v)=self.state.visuals.get(&entity){if self.materials.get(&v.material).is_some_and(|m|m.params!=params||m.albedo!=albedo||m.normal!=normal){if let Some(m)=self.materials.get_mut(&v.material){m.params=params;m.albedo=albedo;m.normal=normal;}}if v.transform!=t{self.commands.entity(v.entity).insert(t);if let Some(v)=self.state.visuals.get_mut(&entity){v.transform=t;}}}
    else {let material=self.materials.add(SceneMaterial{params,albedo,normal});let visual=self.commands.spawn((Mesh2d(quad),MeshMaterial2d(material.clone()),t)).id();self.state.visuals.insert(entity,Visual{entity:visual,material,transform:t});}
