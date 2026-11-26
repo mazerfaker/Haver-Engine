@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "name": "Forge Demo",
+  "objects": [
+    {
+      "id": "8b1a3915-6d56-428f-b8b7-e2c85e9c7f6a",
+      "name": "Ground",
+      "position": [
+        0,
+        -110
+      ],
+      "size": [
+        460,
+        32
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        80,
+        111,
+        103,
+        255
+      ],
+      "sprite": null,
+      "player": false
+    },
+    {
+      "id": "3f4b8d7d-ce33-4bfe-99b3-f0fb56ad94cb",
+      "name": "Platform",
+      "position": [
+        130,
+        -25
+      ],
+      "size": [
+        110,
+        20
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        100,
+        130,
+        148,
+        255
+      ],
+      "sprite": null,
+      "player": false
+    },
+    {
+      "id": "c8e2e8e7-51e3-4dd7-8181-1a3355766364",
+      "name": "Player",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        48,
+        60
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/player.png",
+      "player": true
+    }
+  ]
+}
