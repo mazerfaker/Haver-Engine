@@ -68,24 +68,25 @@ fn nested_id(scope:uuid::Uuid,child:uuid::Uuid)->uuid::Uuid{
  uuid::Uuid::from_u128((u128::from(a)<<64)|u128::from(b))
 }
 /// Resolve files only within the prefab library; reject cycles, oversized files and deep graphs.
-pub fn load_library_prefab(root:&std::path::Path,file:&str)->Result<Vec<Object>,String>{
+pub fn load_library_prefab(root:&std::path::Path,file:&str)->Result<Vec<Object>,String>{load_library_prefab_with_override(root,file,None)}
+fn load_library_prefab_with_override(root:&std::path::Path,file:&str,replace:Option<(&std::path::Path,&[u8])>)->Result<Vec<Object>,String>{
  let root=root.canonicalize().map_err(|e|e.to_string())?;let mut stack=HashSet::new();let mut reads=0usize;
- fn resolve(root:&std::path::Path,file:&str,stack:&mut HashSet<std::path::PathBuf>,reads:&mut usize,depth:usize)->Result<Vec<Object>,String>{
+ fn resolve(root:&std::path::Path,file:&str,stack:&mut HashSet<std::path::PathBuf>,reads:&mut usize,depth:usize,replace:Option<(&std::path::Path,&[u8])>)->Result<Vec<Object>,String>{
   use std::io::Read;
   if depth>8||*reads>=128||!valid_prefab_file(file){return Err("Invalid nested prefab path or expansion limit".into());}*reads+=1;
   let path=root.join(file).canonicalize().map_err(|e|e.to_string())?;if !path.starts_with(root)||!stack.insert(path.clone()){return Err("Nested prefab cycle or path outside library".into());}
-  let mut data=Vec::new();std::fs::File::open(&path).map_err(|e|e.to_string())?.take(8*1024*1024+1).read_to_end(&mut data).map_err(|e|e.to_string())?;if data.len()>8*1024*1024{return Err("Prefab file exceeds 8 MiB".into());}
+  let mut data=Vec::new();if let Some((_,bytes))=replace.filter(|(target,_)|*target==path.as_path()){data.extend_from_slice(bytes);}else{std::fs::File::open(&path).map_err(|e|e.to_string())?.take(8*1024*1024+1).read_to_end(&mut data).map_err(|e|e.to_string())?;}if data.len()>8*1024*1024{return Err("Prefab file exceeds 8 MiB".into());}
   let (mut objects,nested)=match serde_json::from_slice::<LibraryDocument>(&data).map_err(|e|e.to_string())?{LibraryDocument::Legacy(v)=>(v,vec![]),LibraryDocument::Composite{objects,nested}=>(objects,nested)};
   let mut refs=HashSet::new();let local_ids:HashSet<_>=objects.iter().map(|o|o.id).collect();
   for n in nested {if !refs.insert(n.id)||!n.offset.iter().all(|v|v.is_finite())||n.parent.is_some_and(|p|!local_ids.contains(&p)){return Err("Invalid nested reference identity, offset or parent".into());}
-   let mut children=resolve(root,&n.file,stack,reads,depth+1)?;if objects.len().saturating_add(children.len())>10000{return Err("Prefab object limit".into());}
+   let mut children=resolve(root,&n.file,stack,reads,depth+1,replace)?;if objects.len().saturating_add(children.len())>10000{return Err("Prefab object limit".into());}
    let ids:HashMap<_,_>=children.iter().map(|o|(o.id,nested_id(n.id,o.id))).collect();
    for o in &mut children {o.id=ids[&o.id];o.parent=o.parent.map(|p|ids[&p]).or(n.parent);o.prefab_link=None;for i in 0..2{o.position[i]+=n.offset[i];for k in o.motion.keys.iter_mut().chain(o.motion.clip_keys.values_mut().flatten()){k.position[i]+=n.offset[i];}}}
    objects.extend(children);
   }
   stack.remove(&path);validate_prefab(&objects)?;Ok(objects)
  }
- resolve(&root,file,&mut stack,&mut reads,0)
+ resolve(&root,file,&mut stack,&mut reads,0,replace)
 }
 #[cfg(test)]mod external_tests{use super::*;#[test]fn nested_load_stable_and_cycle_safe(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let child=Object::new("child",[1.,2.],[8.;2],[255;4]);std::fs::write(root.join("child.prefab.json"),serde_json::to_vec(&vec![child]).unwrap()).unwrap();let parent=Object::new("parent",[0.;2],[8.;2],[255;4]);let doc=serde_json::json!({"objects":[parent.clone()],"nested":[{"id":uuid::Uuid::new_v4(),"file":"child.prefab.json","parent":parent.id,"offset":[4.,5.]}]});std::fs::write(root.join("a.prefab.json"),serde_json::to_vec(&doc).unwrap()).unwrap();let a=load_library_prefab(&root,"a.prefab.json").unwrap();let b=load_library_prefab(&root,"a.prefab.json").unwrap();assert_eq!(a,b);assert_eq!(a[1].parent,Some(parent.id));assert_eq!(a[1].position,[5.,7.]);let cycle=serde_json::json!({"nested":[{"id":uuid::Uuid::new_v4(),"file":"cycle.prefab.json"}]});std::fs::write(root.join("cycle.prefab.json"),serde_json::to_vec(&cycle).unwrap()).unwrap();assert!(load_library_prefab(&root,"cycle.prefab.json").is_err());std::fs::remove_dir_all(root).unwrap();}}
 
@@ -105,3 +106,24 @@ pub fn create_composite_prefab(root:&std::path::Path,file:&str,objects:&[Object]
  if result.is_err(){let _=std::fs::remove_file(&path);}result
 }
 #[cfg(test)]mod composer_tests{use super::*;#[test]fn preserves_source_and_no_overwrite(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let source=serde_json::to_vec(&vec![Object::new("child",[0.;2],[1.;2],[255;4])]).unwrap();std::fs::write(root.join("child.prefab.json"),&source).unwrap();let n=NestedPrefab{id:uuid::Uuid::new_v4(),file:"child.prefab.json".into(),parent:None,offset:[4.,5.]};assert_eq!(create_composite_prefab(&root,"parent.prefab.json",&[],&[n.clone()]).unwrap(),1);assert!(create_composite_prefab(&root,"child.prefab.json",&[],&[n.clone()]).is_err());assert!(create_composite_prefab(&root,"parent.prefab.json",&[],&[n]).is_err());assert_eq!(std::fs::read(root.join("child.prefab.json")).unwrap(),source);std::fs::remove_dir_all(root).unwrap();}}
+
+/// An editable composite with the original bytes for optimistic conflict detection.
+#[derive(Clone,Debug)]
+pub struct CompositeEdit{pub objects:Vec<Object>,pub nested:Vec<NestedPrefab>,original:Vec<u8>}
+pub fn read_composite_for_edit(root:&std::path::Path,file:&str)->Result<CompositeEdit,String>{
+ use std::io::Read;
+ if !valid_prefab_file(file){return Err("Invalid prefab filename".into());}let root=root.canonicalize().map_err(|e|e.to_string())?;let path=root.join(file).canonicalize().map_err(|e|e.to_string())?;if path!=root.join(file){return Err("Editing redirected prefab paths is disabled".into());}
+ let mut data=Vec::new();std::fs::File::open(path).map_err(|e|e.to_string())?.take(8*1024*1024+1).read_to_end(&mut data).map_err(|e|e.to_string())?;if data.len()>8*1024*1024{return Err("Prefab exceeds 8 MiB".into());}
+ match serde_json::from_slice::<LibraryDocument>(&data).map_err(|e|e.to_string())?{LibraryDocument::Legacy(_)=>Err("Open a composite prefab, not a legacy object list".into()),LibraryDocument::Composite{objects,nested}=>Ok(CompositeEdit{objects,nested,original:data})}
+}
+pub fn update_composite_prefab(root:&std::path::Path,file:&str,doc:&CompositeEdit,nested:&[NestedPrefab])->Result<usize,String>{
+ use std::io::Write;
+ if nested.len()>128{return Err("Nested reference limit".into());}let current=read_composite_for_edit(root,file)?;if current.original!=doc.original{return Err("Prefab changed externally; reopen before saving".into());}
+ let root=root.canonicalize().map_err(|e|e.to_string())?;let path=root.join(file);let bytes=serde_json::to_vec_pretty(&serde_json::json!({"objects":doc.objects,"nested":nested})).map_err(|e|e.to_string())?;if bytes.len()>8*1024*1024{return Err("Composite exceeds 8 MiB".into());}
+ let count=load_library_prefab_with_override(&root,file,Some((&path,&bytes)))?.len();
+ let token=uuid::Uuid::new_v4();let backup=root.join(format!("{file}.{token}.bak"));let temporary=root.join(format!("{file}.{token}.tmp"));
+ let write=|path:&std::path::Path,data:&[u8]|->Result<(),String>{let mut f=std::fs::OpenOptions::new().create_new(true).write(true).open(path).map_err(|e|e.to_string())?;f.write_all(data).and_then(|_|f.sync_all()).map_err(|e|e.to_string())};
+ write(&backup,&current.original)?;if let Err(e)=write(&temporary,&bytes){let _=std::fs::remove_file(&temporary);return Err(e);}if read_composite_for_edit(&root,file).map(|v|v.original).ok().as_ref()!=Some(&current.original){let _=std::fs::remove_file(&temporary);return Err("Concurrent prefab edit; backup retained".into());}
+ if let Err(e)=std::fs::rename(&temporary,&path){let _=std::fs::remove_file(&temporary);return Err(format!("Replace failed: {e}; original and backup retained"));}Ok(count)
+}
+#[cfg(test)]mod edit_composite_tests{use super::*;#[test]fn edit_and_reject_cycle(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();std::fs::write(root.join("child.prefab.json"),serde_json::to_vec(&vec![Object::new("child",[0.;2],[1.;2],[255;4])]).unwrap()).unwrap();let mut n=NestedPrefab{id:uuid::Uuid::new_v4(),file:"child.prefab.json".into(),parent:None,offset:[0.;2]};create_composite_prefab(&root,"a.prefab.json",&[],&[n.clone()]).unwrap();let doc=read_composite_for_edit(&root,"a.prefab.json").unwrap();let before=load_library_prefab(&root,"a.prefab.json").unwrap();n.offset=[8.,4.];update_composite_prefab(&root,"a.prefab.json",&doc,&[n.clone()]).unwrap();let after=load_library_prefab(&root,"a.prefab.json").unwrap();assert_eq!(before[0].id,after[0].id);assert_eq!(after[0].position,[8.,4.]);assert!(update_composite_prefab(&root,"a.prefab.json",&doc,&[n.clone()]).is_err());let doc=read_composite_for_edit(&root,"a.prefab.json").unwrap();n.file="a.prefab.json".into();assert!(update_composite_prefab(&root,"a.prefab.json",&doc,&[n]).is_err());assert_eq!(load_library_prefab(&root,"a.prefab.json").unwrap(),after);std::fs::remove_dir_all(root).unwrap();}}

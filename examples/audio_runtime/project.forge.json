@@ -1,0 +1,102 @@
+{
+  "schema": 2,
+  "name": "Audio runtime QA \u2014 dry left / DSP right",
+  "isometric": false,
+  "settings": {
+    "ambient": 1.0,
+    "rapier": false
+  },
+  "objects": [
+    {
+      "id": "5b33275d-1c37-4063-8a78-4508fd5b5cec",
+      "name": "Listener \u2014 A/D or arrows",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        28,
+        48
+      ],
+      "rotation": 0.0,
+      "layer": 1,
+      "color": [
+        120,
+        190,
+        240,
+        255
+      ],
+      "sprite": null,
+      "player": true
+    },
+    {
+      "id": "b18afaa9-bd46-41b9-99b0-433e7c13e2c0",
+      "name": "Dry source (left)",
+      "position": [
+        -220,
+        0
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "rotation": 0.0,
+      "layer": 1,
+      "color": [
+        115,
+        190,
+        145,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "sound": {
+          "path": "assets/pulse.wav",
+          "volume": 0.7,
+          "looping": true,
+          "spatial": true,
+          "distance": 230.0,
+          "stereo_pan": false
+        }
+      }
+    },
+    {
+      "id": "cc10ec37-a3d9-416d-8a02-7e048284bce0",
+      "name": "DSP source (right)",
+      "position": [
+        220,
+        0
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "rotation": 0.0,
+      "layer": 1,
+      "color": [
+        220,
+        160,
+        90,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "sound": {
+          "path": "assets/pulse.wav",
+          "volume": 0.7,
+          "looping": true,
+          "spatial": true,
+          "distance": 230.0,
+          "stereo_pan": false,
+          "effects": {
+            "low_db": -6.0,
+            "high_db": 6.0,
+            "room": 0.85
+          }
+        }
+      }
+    }
+  ]
+}

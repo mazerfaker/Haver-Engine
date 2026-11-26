@@ -14,13 +14,17 @@ jobs:
         run: |
           Start-Transcript -Path forge-matrix.log
           try { .\tools\qa_matrix.ps1 } finally { Stop-Transcript }
+      - name: Check isolated experimental examples
+        continue-on-error: true
+        shell: powershell
+        run: cargo check --locked --no-default-features --features gpu-instancing-lab,audio-dsp-lab --examples --target x86_64-pc-windows-msvc
       - name: Build and verify portable package
         shell: powershell
         run: .\tools\build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7.25-Windows-portable
-          path: ForgeEngine-v0.7.25-Windows-portable.zip
+          name: ForgeEngine-v0.7.26-Windows-portable
+          path: ForgeEngine-v0.7.26-Windows-portable.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()

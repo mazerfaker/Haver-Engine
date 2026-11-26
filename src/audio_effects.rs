@@ -1,6 +1,6 @@
 //! Offline PCM16 WAV processing. No realtime DSP or external codecs.
 use std::{fs,path::Path};
-#[derive(Clone,Copy,Debug,PartialEq)]pub struct WavEffects{pub low_db:f32,pub high_db:f32,pub room:f32}
+#[derive(Clone,Copy,Debug,PartialEq,serde::Serialize,serde::Deserialize)] #[serde(default)] pub struct WavEffects{pub low_db:f32,pub high_db:f32,pub room:f32}
 impl Default for WavEffects{fn default()->Self{Self{low_db:0.,high_db:0.,room:0.}}}
 fn u16_at(b:&[u8],i:usize)->u16{u16::from_le_bytes([b[i],b[i+1]])}
 fn u32_at(b:&[u8],i:usize)->u32{u32::from_le_bytes([b[i],b[i+1],b[i+2],b[i+3]])}

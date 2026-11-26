@@ -13,9 +13,9 @@ class Fixtures(unittest.TestCase):
  def test_nested_fixture(self):
   r=ROOT/'examples/frame_geometry/prefabs';p=json.loads((r/'parent.prefab.json').read_text());child=json.loads((r/p['nested'][0]['file']).read_text());self.assertEqual(p['nested'][0]['parent'],p['objects'][0]['id']);self.assertEqual(p['nested'][0]['offset'],[32,0]);self.assertNotEqual(uuid.UUID(child[0]['id']),uuid.UUID(p['objects'][0]['id']))
  def test_lock(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.25');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1)
-  for v in range(14,25):
-   old=f'[[package]]\nname = "forge_engine"\nversion = "0.7.{v}"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.25\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.25"',out);self.assertIn('version = "0.16.1"',out)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.26');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1)
+  for v in range(14,26):
+   old=f'[[package]]\nname = "forge_engine"\nversion = "0.7.{v}"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.26\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.26"',out);self.assertIn('version = "0.16.1"',out)
  def test_geometry_wiring(self):
   for file in ['src/bin/forge_editor.rs','src/bin/forge_editor/viewport.rs','src/bin/forge_player.rs','src/gpu_scene.rs']:
    self.assertIn('sprite_frame_geometry',(ROOT/file).read_text())

@@ -1,0 +1,8 @@
+Forge Engine v0.7.26 static QA
+PASS: 26 validate_* Python tests + 2 asset-pack tests (28 total).
+PASS: Signal Lost 4 scenes, 214 objects, unique IDs and asset/atlas ranges.
+PASS: all JSON and TOML parse.
+PASS: 59/59 previous example files byte-identical.
+PASS: 9/10 prior WGSL files identical; only src/gpu_scene.wgsl intentionally modified.
+PASS: Cargo manifest unchanged apart from root package version.
+NOT RUN: Rust checks/tests, Windows build, WGSL execution, audio playback, performance measurements.

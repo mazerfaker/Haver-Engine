@@ -11,9 +11,9 @@ fn rotate(v:vec2<f32>)->vec2<f32>{return vec2<f32>(p.rotation.x*v.x-p.rotation.y
 fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
  if bounds.z<=bounds.x || bounds.w<=bounds.y {return false;}
  let d=b-a;
- if (abs(d.x)<0.00001 && (a.x<bounds.x||a.x>bounds.z)) || (abs(d.y)<0.00001 && (a.y<bounds.y||a.y>bounds.w)){return false;}
- let inv=vec2<f32>(1.0)/select(vec2<f32>(0.00001),d,abs(d)>vec2<f32>(0.00001));
- let t0=(bounds.xy-a)*inv;let t1=(bounds.zw-a)*inv;let lo=min(t0,t1);let hi=max(t0,t1);
+ if (abs(d.x)<=0.00001 && (a.x<bounds.x||a.x>bounds.z)) || (abs(d.y)<=0.00001 && (a.y<bounds.y||a.y>bounds.w)){return false;}
+ let moving=abs(d)>vec2<f32>(0.00001);let inv=vec2<f32>(1.0)/select(vec2<f32>(1.0),d,moving);
+ let t0=(bounds.xy-a)*inv;let t1=(bounds.zw-a)*inv;let lo=select(vec2<f32>(-1e20),min(t0,t1),moving);let hi=select(vec2<f32>(1e20),max(t0,t1),moving);
  return max(max(lo.x,lo.y),0.001)<min(min(hi.x,hi.y),0.999);
 }
 @fragment fn fragment(mesh:VertexOutput)->@location(0) vec4<f32>{
@@ -26,8 +26,8 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
  var shade=vec3<f32>(p.rotation.z);
  for(var li:u32=0u;li<3u;li=li+1u){let light=p.light[li];if light.z<=0.0{continue;}let delta=light.xy-world;
   let perpendicular=vec2<f32>(-delta.y,delta.x)/max(length(delta),0.001);var visible=0.0;
-  let samples=select(1u,3u,p.rotation.w>0.0);
-  for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;}}visible+=select(1.0,0.0,hit);}
+  let samples=select(1u,5u,p.rotation.w>0.0);
+  for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)*0.5-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;break;}}visible+=select(1.0,0.0,hit);}
   visible/=f32(samples);let diffuse=max(dot(n,normalize(vec3<f32>(delta,light.z*0.25))),0.0);
   let attenuation=max(0.0,1.0-length(delta)/light.z);shade+=p.light_color[li].xyz*(diffuse*attenuation*visible*light.w);
  }

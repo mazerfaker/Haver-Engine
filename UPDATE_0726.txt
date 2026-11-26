@@ -1,0 +1,5 @@
+Forge Engine v0.7.25 -> v0.7.26
+Extract directly into the v0.7.25 project directory (overwrite changed files).
+Keep Cargo.lock and target. No dependency changes. prepare_lock.ps1 migrates root package version only.
+Back up projects first. Run QUICK_CHECK.bat then QUICK_TEST.bat.
+GPU_INSTANCING_LAB remains isolated pending validation. Test RUN_AUDIO_RUNTIME_SCENE.bat after successful build.
