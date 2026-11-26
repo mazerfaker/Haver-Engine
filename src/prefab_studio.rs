@@ -54,3 +54,37 @@ pub fn refresh_linked_additions(project:&mut crate::Project,instance:uuid::Uuid,
 /// Refresh every materialized instance of a single library prefab, atomically across the scene.
 pub fn refresh_all_linked(project:&mut crate::Project,file:&str,source:&[Object])->Result<usize,String>{if !valid_prefab_file(file){return Err("Invalid library filename".into());}let ids:std::collections::BTreeSet<_>=project.objects.iter().filter_map(|o|o.prefab_link.as_ref().filter(|l|l.file==file).map(|l|l.instance)).collect();if ids.is_empty(){return Err("No linked instances".into());}let mut candidate=project.clone();let mut n=0;for id in ids{n+=refresh_linked_additions(&mut candidate,id,source)?;}*project=candidate;Ok(n)}
 #[cfg(test)]mod bulk_tests{use super::*;#[test]fn refresh_two_instances(){let a=Object::new("a",[0.;2],[8.;2],[255;4]);let mut b=Object::new("b",[1.,2.],[8.;2],[255;4]);b.parent=Some(a.id);let mut p=crate::Project::default();p.objects.extend(instantiate_linked(vec![a.clone()],"a.prefab.json",[10.,0.]).unwrap());p.objects.extend(instantiate_linked(vec![a.clone()],"a.prefab.json",[20.,0.]).unwrap());assert_eq!(refresh_all_linked(&mut p,"a.prefab.json",&[a,b]).unwrap(),4);assert_eq!(p.objects.iter().filter(|o|o.name=="b").count(),2);}}
+
+/// External prefab composition. Legacy array files are still supported.
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum LibraryDocument { Legacy(Vec<Object>), Composite{ #[serde(default)] objects:Vec<Object>, #[serde(default)] nested:Vec<NestedPrefab> } }
+#[derive(serde::Deserialize)]
+struct NestedPrefab { id:uuid::Uuid,file:String,#[serde(default)] parent:Option<uuid::Uuid>,#[serde(default)] offset:[f32;2] }
+/// Stable source identities scoped to a nested reference. Collisions are rejected by validation.
+fn nested_id(scope:uuid::Uuid,child:uuid::Uuid)->uuid::Uuid{
+ let mut a=0xcbf29ce484222325u64;let mut b=0x84222325cbf29ce4u64;
+ for &x in scope.as_bytes().iter().chain(child.as_bytes()){a=(a^u64::from(x)).wrapping_mul(0x100000001b3);b=(b^u64::from(x)).wrapping_mul(0x9e3779b185ebca87);}
+ uuid::Uuid::from_u128((u128::from(a)<<64)|u128::from(b))
+}
+/// Resolve files only within the prefab library; reject cycles, oversized files and deep graphs.
+pub fn load_library_prefab(root:&std::path::Path,file:&str)->Result<Vec<Object>,String>{
+ let root=root.canonicalize().map_err(|e|e.to_string())?;let mut stack=HashSet::new();let mut reads=0usize;
+ fn resolve(root:&std::path::Path,file:&str,stack:&mut HashSet<std::path::PathBuf>,reads:&mut usize,depth:usize)->Result<Vec<Object>,String>{
+  use std::io::Read;
+  if depth>8||*reads>=128||!valid_prefab_file(file){return Err("Invalid nested prefab path or expansion limit".into());}*reads+=1;
+  let path=root.join(file).canonicalize().map_err(|e|e.to_string())?;if !path.starts_with(root)||!stack.insert(path.clone()){return Err("Nested prefab cycle or path outside library".into());}
+  let mut data=Vec::new();std::fs::File::open(&path).map_err(|e|e.to_string())?.take(8*1024*1024+1).read_to_end(&mut data).map_err(|e|e.to_string())?;if data.len()>8*1024*1024{return Err("Prefab file exceeds 8 MiB".into());}
+  let (mut objects,nested)=match serde_json::from_slice::<LibraryDocument>(&data).map_err(|e|e.to_string())?{LibraryDocument::Legacy(v)=>(v,vec![]),LibraryDocument::Composite{objects,nested}=>(objects,nested)};
+  let mut refs=HashSet::new();let local_ids:HashSet<_>=objects.iter().map(|o|o.id).collect();
+  for n in nested {if !refs.insert(n.id)||!n.offset.iter().all(|v|v.is_finite())||n.parent.is_some_and(|p|!local_ids.contains(&p)){return Err("Invalid nested reference identity, offset or parent".into());}
+   let mut children=resolve(root,&n.file,stack,reads,depth+1)?;if objects.len().saturating_add(children.len())>10000{return Err("Prefab object limit".into());}
+   let ids:HashMap<_,_>=children.iter().map(|o|(o.id,nested_id(n.id,o.id))).collect();
+   for o in &mut children {o.id=ids[&o.id];o.parent=o.parent.map(|p|ids[&p]).or(n.parent);o.prefab_link=None;for i in 0..2{o.position[i]+=n.offset[i];for k in &mut o.motion.keys{k.position[i]+=n.offset[i];}}}
+   objects.extend(children);
+  }
+  stack.remove(&path);validate_prefab(&objects)?;Ok(objects)
+ }
+ resolve(&root,file,&mut stack,&mut reads,0)
+}
+#[cfg(test)]mod external_tests{use super::*;#[test]fn nested_load_stable_and_cycle_safe(){let root=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());std::fs::create_dir_all(&root).unwrap();let child=Object::new("child",[1.,2.],[8.;2],[255;4]);std::fs::write(root.join("child.prefab.json"),serde_json::to_vec(&vec![child]).unwrap()).unwrap();let parent=Object::new("parent",[0.;2],[8.;2],[255;4]);let doc=serde_json::json!({"objects":[parent.clone()],"nested":[{"id":uuid::Uuid::new_v4(),"file":"child.prefab.json","parent":parent.id,"offset":[4.,5.]}]});std::fs::write(root.join("a.prefab.json"),serde_json::to_vec(&doc).unwrap()).unwrap();let a=load_library_prefab(&root,"a.prefab.json").unwrap();let b=load_library_prefab(&root,"a.prefab.json").unwrap();assert_eq!(a,b);assert_eq!(a[1].parent,Some(parent.id));assert_eq!(a[1].position,[5.,7.]);let cycle=serde_json::json!({"nested":[{"id":uuid::Uuid::new_v4(),"file":"cycle.prefab.json"}]});std::fs::write(root.join("cycle.prefab.json"),serde_json::to_vec(&cycle).unwrap()).unwrap();assert!(load_library_prefab(&root,"cycle.prefab.json").is_err());std::fs::remove_dir_all(root).unwrap();}}

@@ -22,7 +22,7 @@ impl Plugin for GpuScenePlugin {
   app.add_plugins(Material2dPlugin::<SceneMaterial>::default()).init_resource::<GpuScene>();
  }
 }
-struct Visual { entity:Entity, material:Handle<SceneMaterial> }
+struct Visual { entity:Entity, material:Handle<SceneMaterial>, transform:Transform }
 #[derive(Resource,Default)] pub struct GpuScene { visuals:HashMap<Entity,Visual>, normals:HashMap<PathBuf,Option<Handle<Image>>>, flat:Option<Handle<Image>>, white:Option<Handle<Image>>, quad:Option<Handle<Mesh>> }
 #[derive(bevy::ecs::system::SystemParam)] pub struct GpuDraw<'w,'s> {
  state:ResMut<'w,GpuScene>, meshes:ResMut<'w,Assets<Mesh>>, images:ResMut<'w,Assets<Image>>, materials:ResMut<'w,Assets<SceneMaterial>>, commands:Commands<'w,'s>,
@@ -58,17 +58,17 @@ impl GpuDraw<'_,'_> {
    }else{flat};
    let albedo=if o.sprite.is_some(){sprite.image.clone()}else{white};
    let uv=if o.sprite.is_some(){o.animation.uv(crate::animation_time(o,elapsed))}else{[[0.,0.],[1.,0.],[1.,1.],[0.,1.]]};
-   let center=Vec2::from_array(sprite_center(o,false));let (sin,cos)=o.rotation.to_radians().sin_cos();
-   let mut params=LightParams{tint:Vec4::from_array(o.color.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,o.size[0],o.size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
-   let strength=|(s,l):&(&Object,&crate::Light)|{let d=center.distance(Vec2::from_array(s.position));(1.-d/l.radius).max(0.)*l.intensity.max(0.)};
+   let (center,frame_size)=crate::sprite_frame_geometry(o,false,crate::animation_time(o,elapsed));let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
+   let mut params=LightParams{tint:Vec4::from_array(o.color.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
+   let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
    let relevant=best_n(lights.iter().copied().filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
     let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size);let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let blocks=best_n(solids.iter().copied().filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
     for (i,(_,b)) in blocks.into_iter().enumerate(){params.blockers[li*4+i]=b;}
    }
-   let mut t=*transform;t.scale=Vec3::new(o.size[0],o.size[1],1.);
-   if let Some(v)=self.state.visuals.get(&entity){if self.materials.get(&v.material).is_some_and(|m|m.params!=params||m.albedo!=albedo||m.normal!=normal){if let Some(m)=self.materials.get_mut(&v.material){m.params=params;m.albedo=albedo;m.normal=normal;}}self.commands.entity(v.entity).insert(t);}
-   else {let material=self.materials.add(SceneMaterial{params,albedo,normal});let visual=self.commands.spawn((Mesh2d(quad),MeshMaterial2d(material.clone()),t)).id();self.state.visuals.insert(entity,Visual{entity:visual,material});}
+   let mut t=*transform;t.translation.x=center.x;t.translation.y=center.y;t.scale=Vec3::new(frame_size[0],frame_size[1],1.);
+   if let Some(v)=self.state.visuals.get(&entity){if self.materials.get(&v.material).is_some_and(|m|m.params!=params||m.albedo!=albedo||m.normal!=normal){if let Some(m)=self.materials.get_mut(&v.material){m.params=params;m.albedo=albedo;m.normal=normal;}}if v.transform!=t{self.commands.entity(v.entity).insert(t);if let Some(v)=self.state.visuals.get_mut(&entity){v.transform=t;}}}
+   else {let material=self.materials.add(SceneMaterial{params,albedo,normal});let visual=self.commands.spawn((Mesh2d(quad),MeshMaterial2d(material.clone()),t)).id();self.state.visuals.insert(entity,Visual{entity:visual,material,transform:t});}
    if *visibility!=Visibility::Hidden{*visibility=Visibility::Hidden;}
   }
   let obsolete:Vec<_>=self.state.visuals.keys().copied().filter(|id|!alive.contains(id)).collect();for id in obsolete{if let Some(v)=self.state.visuals.remove(&id){self.commands.entity(v.entity).despawn();}}

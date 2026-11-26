@@ -20,3 +20,13 @@ pub fn inherit_world(before:&Project,after:&mut Project){
 }
 pub fn sprite_center(o:&Object,iso:bool)->[f32;2]{let p=crate::project_point(o.position,iso);let d=rotate([-o.motion.pivot[0]*o.size[0],-o.motion.pivot[1]*o.size[1]],o.rotation);[p[0]+d[0],p[1]+d[1]]}
 #[cfg(test)]mod tests{use super::*;#[test]fn parent_delta(){let mut p=Project::default();let id=p.objects[0].id;let child=p.objects[1].id;reparent(&mut p,child,Some(id)).unwrap();let old=p.clone();p.objects[0].position[0]+=20.;inherit_world(&old,&mut p);assert_eq!(p.objects[1].position[0],old.objects[1].position[0]+20.);assert!(reparent(&mut p,id,Some(child)).is_err());}#[test]fn pivot(){let mut o=Object::new("test",[0.,0.],[20.,40.],[255;4]);o.motion.pivot=[0.5,0.];assert_eq!(sprite_center(&o,false),[-10.,0.]);}}
+
+/// Visual bounds of an animation frame, independent of logical object/physics bounds.
+pub fn sprite_frame_geometry(o:&Object,iso:bool,time:f32)->([f32;2],[f32;2]) {
+ let center=sprite_center(o,iso);
+ let frame=o.animation.frame(time);
+ let Some(&g)=o.animation.frame_geometry.get(&frame).filter(|g|crate::valid_region(**g)&&o.sprite.is_some()) else{return (center,o.size);};
+ let offset=rotate([(g[0]+g[2]*0.5-0.5)*o.size[0],(0.5-g[1]-g[3]*0.5)*o.size[1]],o.rotation);
+ ([center[0]+offset[0],center[1]+offset[1]],[o.size[0]*g[2],o.size[1]*g[3]])
+}
+#[cfg(test)]mod frame_geometry_tests{use super::*;#[test]fn trim_keeps_world_pixels_and_collider(){let mut o=Object::new("trim",[10.,20.],[100.,80.],[255;4]);o.sprite=Some("assets/a.png".into());o.motion.pivot=[0.1,-0.25];o.animation.frame_geometry.insert(0,[0.25,0.125,0.5,0.5]);let (c,s)=sprite_frame_geometry(&o,false,0.);assert_eq!(c,[0.,50.]);assert_eq!(s,[50.,40.]);assert_eq!(o.size,[100.,80.]);o.rotation=90.;let (c,_)=sprite_frame_geometry(&o,false,0.);assert!((c[0]+20.).abs()<0.001&&(c[1]-10.).abs()<0.001);}}

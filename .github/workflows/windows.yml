@@ -19,8 +19,8 @@ jobs:
         run: .\tools\build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: ForgeEngine-v0.7.23-Windows-portable
-          path: ForgeEngine-v0.7.23-Windows-portable.zip
+          name: ForgeEngine-v0.7.24-Windows-portable
+          path: ForgeEngine-v0.7.24-Windows-portable.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()

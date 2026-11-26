@@ -1,0 +1,37 @@
+{
+  "objects": [
+    {
+      "id": "ca76568f-f4a0-4fa6-8b3a-fdaabfb80538",
+      "name": "Prefab parent",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        24,
+        24
+      ],
+      "rotation": 0,
+      "layer": 1,
+      "color": [
+        180,
+        180,
+        180,
+        255
+      ],
+      "sprite": null,
+      "player": false
+    }
+  ],
+  "nested": [
+    {
+      "id": "a3eb3b73-07a1-40d3-b17b-b40c9c4448f0",
+      "file": "child.prefab.json",
+      "parent": "ca76568f-f4a0-4fa6-8b3a-fdaabfb80538",
+      "offset": [
+        32,
+        0
+      ]
+    }
+  ]
+}

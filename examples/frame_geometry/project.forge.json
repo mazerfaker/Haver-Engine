@@ -1,0 +1,177 @@
+{
+  "schema": 2,
+  "name": "Frame geometry QA",
+  "isometric": false,
+  "settings": {
+    "gpu_lighting": true,
+    "ambient": 0.2,
+    "gpu_particles": false,
+    "hud_canvas_groups": true,
+    "widgets": [],
+    "gpu_light_count": 1
+  },
+  "objects": [
+    {
+      "id": "199adaf3-aced-5a99-be2e-31ea5f3ab43e",
+      "name": "Normal mapped floor",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        680,
+        420
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/panel.png",
+      "player": false,
+      "production": {
+        "normal_map": "assets/panel_normal.png"
+      }
+    },
+    {
+      "id": "a59f033e-b996-50db-ad18-349e389713c0",
+      "name": "Shadow blocker",
+      "position": [
+        25,
+        0
+      ],
+      "size": [
+        60,
+        110
+      ],
+      "rotation": 0,
+      "layer": 1,
+      "color": [
+        120,
+        130,
+        150,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "3eee90d4-2cd8-5a82-924a-caef8d914af7",
+      "name": "Trim QA — identical frames",
+      "position": [
+        -150,
+        70
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/trim_test.png",
+      "player": true,
+      "body": "None",
+      "pro": {
+        "light": {
+          "radius": 450,
+          "intensity": 1.7,
+          "color": [
+            1.0,
+            0.75,
+            0.45
+          ]
+        },
+        "variables": {
+          "energy": 0.65
+        }
+      },
+      "clip_name": "Idle",
+      "animation": {
+        "columns": 2,
+        "rows": 1,
+        "frames": 2,
+        "fps": 1,
+        "looping": true,
+        "start": 0,
+        "durations": [
+          1000,
+          1000
+        ],
+        "regions": [
+          [
+            0,
+            0,
+            0.5,
+            1
+          ],
+          [
+            0.59375,
+            0.125,
+            0.1875,
+            0.625
+          ]
+        ],
+        "frame_geometry": {
+          "1": [
+            0.1875,
+            0.125,
+            0.375,
+            0.625
+          ]
+        }
+      },
+      "clips": {
+        "Idle": {
+          "columns": 2,
+          "rows": 1,
+          "frames": 2,
+          "fps": 1,
+          "looping": true,
+          "start": 0,
+          "durations": [
+            1000,
+            1000
+          ],
+          "regions": [
+            [
+              0,
+              0,
+              0.5,
+              1
+            ],
+            [
+              0.59375,
+              0.125,
+              0.1875,
+              0.625
+            ]
+          ],
+          "frame_geometry": {
+            "1": [
+              0.1875,
+              0.125,
+              0.375,
+              0.625
+            ]
+          }
+        }
+      },
+      "motion": {
+        "pivot": [
+          0.15,
+          -0.25
+        ]
+      }
+    }
+  ]
+}

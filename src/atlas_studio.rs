@@ -31,3 +31,14 @@ fn shelf(frames:&[image::RgbaImage],order:&[usize])->Option<(Vec<[u32;4]>,u32,u3
 /// Preserve visual position and pixel scale for a single-frame sprite; physics size is not independent.
 pub fn compensate_trim(old:[f32;4],new:[f32;4],size:[f32;2],pivot:[f32;2])->Option<([f32;2],[f32;2])>{if !valid_region(old)||!valid_region(new)||size.iter().any(|s|!s.is_finite()||*s<=0.)||pivot.iter().any(|v|!v.is_finite())||new[0]+1e-6<old[0]||new[1]+1e-6<old[1]||new[0]+new[2]>old[0]+old[2]+1e-6||new[1]+new[3]>old[1]+old[3]+1e-6{return None;}let ratio=[new[2]/old[2],new[3]/old[3]];let offset=[(new[0]+new[2]*0.5-old[0]-old[2]*0.5)/old[2],-(new[1]+new[3]*0.5-old[1]-old[3]*0.5)/old[3]];Some(([size[0]*ratio[0],size[1]*ratio[1]],[(pivot[0]-offset[0])/ratio[0],(pivot[1]-offset[1])/ratio[1]]))}
 #[cfg(test)]mod compensation_tests{use super::*;#[test]fn preserves_original_world_pixel(){let (s,p)=compensate_trim([0.,0.,1.,1.],[0.25,0.25,0.5,0.25],[100.,100.],[0.,0.]).unwrap();assert_eq!(s,[50.,25.]);assert_eq!(p,[0.,-0.5]);}}
+
+/// Compose a trimmed UV region into the frame's existing logical rectangle.
+/// Repeated trims retain scale and position without modifying the object or collider.
+pub fn trim_frame_preserving_geometry(a:&mut Animation,i:usize,new:[f32;4])->bool{
+ let Some(&old)=a.regions.get(i) else{return false;};
+ if !valid_region(old)||!valid_region(new)||new[0]+1e-6<old[0]||new[1]+1e-6<old[1]||new[0]+new[2]>old[0]+old[2]+1e-6||new[1]+new[3]>old[1]+old[3]+1e-6{return false;}
+ let base=a.frame_geometry.get(&(i as u32)).copied().filter(|g|valid_region(*g)).unwrap_or([0.,0.,1.,1.]);
+ let g=[base[0]+(new[0]-old[0])/old[2]*base[2],base[1]+(new[1]-old[1])/old[3]*base[3],new[2]/old[2]*base[2],new[3]/old[3]*base[3]];
+ if !valid_region(g){return false;}a.regions[i]=new;a.frame_geometry.insert(i as u32,g);true
+}
+#[cfg(test)]mod geometry_tests{use super::*;#[test]fn repeated_trim(){let mut a=Animation{regions:vec![[0.,0.,1.,1.],[0.,0.,1.,1.]],..Default::default()};assert!(trim_frame_preserving_geometry(&mut a,1,[0.25,0.25,0.5,0.5]));assert!(trim_frame_preserving_geometry(&mut a,1,[0.375,0.375,0.25,0.25]));assert_eq!(a.frame_geometry[&1],[0.375,0.375,0.25,0.25]);assert!(!a.frame_geometry.contains_key(&0));assert!(!trim_frame_preserving_geometry(&mut a,1,[0.,0.,1.,1.]));let b:Animation=serde_json::from_str(&serde_json::to_string(&a).unwrap()).unwrap();assert_eq!(a,b);}}

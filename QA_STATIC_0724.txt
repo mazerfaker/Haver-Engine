@@ -1,0 +1,8 @@
+Forge Engine 0.7.24 static QA
+21/21 Python tests PASS (including 4 new fixture/lock/source checks)
+Signal Lost: 4/4 scenes, 214 objects PASS
+Previous example files byte-identical: 49
+Previous WGSL files byte-identical: 9
+All JSON parses; Cargo manifest unchanged except package version
+Cargo.lock and target excluded
+Rust compiler / Cargo not available: compilation, Rust tests, Windows execution, GPU and performance measurements NOT VERIFIED

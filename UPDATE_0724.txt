@@ -1,0 +1,5 @@
+Forge Engine 0.7.23 -> 0.7.24
+Extract into the existing root, overwrite source files, preserve Cargo.lock and target.
+Run QUICK_CHECK.bat, QUICK_TEST.bat and RUN_FRAME_GEOMETRY_SCENE.bat.
+Do not use cargo clean. prepare_lock.ps1 migrates only the root package version.
+Source update, not a verified executable. See docs/RELEASE_0724.md.
