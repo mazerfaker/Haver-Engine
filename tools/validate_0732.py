@@ -22,6 +22,6 @@ class Changes(unittest.TestCase):
   graph=json.loads((d/'prefabs/root.prefab.json').read_text());leaf=json.loads((d/'prefabs'/graph['nested'][0]['file']).read_text());self.assertTrue((d/leaf[0]['sprite']).is_file())
   source=(ROOT/'src/max_tools.rs').read_text();self.assertIn('old.remove(&rel).filter(|d|Some(d.stamp)==stamp)',source);self.assertIn('seen.insert(node.clone())',source);self.assertIn('db.documents.len()<4096',source);self.assertIn('doc.nested',source)
  def test_lock(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.32');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
-  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.31"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(pat,r'\g<1>0.7.32\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.33');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
+  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.31"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(pat,r'\g<1>0.7.33\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
 if __name__=='__main__':unittest.main()

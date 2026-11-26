@@ -12,10 +12,11 @@ impl AssetDatabase {
  /// Return reachable resources and unresolved document links; cycles are visited once.
  pub fn transitive_assets(&self,owner:&str)->(Vec<String>,Vec<String>){
   let mut seen=std::collections::BTreeSet::new();let mut assets=std::collections::BTreeSet::new();let mut unresolved=std::collections::BTreeSet::new();let mut todo=vec![owner.to_string()];
-  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if crate::valid_asset(&node){assets.insert(node);continue;}if let Some(edges)=self.graph.get(&node){todo.extend(edges.iter().cloned());}else{unresolved.insert(node);}}
+  while let Some(node)=todo.pop(){if !seen.insert(node.clone()){continue;}if seen.len()>32768{unresolved.insert("Traversal budget exceeded".into());break;}if crate::valid_asset(&node){if self.entries.get(&node).is_some_and(|a|!a.present){unresolved.insert(node.clone());}assets.insert(node);continue;}if let Some(edges)=self.graph.get(&node){todo.extend(edges.iter().cloned());}else{unresolved.insert(node);}}
   (assets.into_iter().collect(),unresolved.into_iter().collect())
  }
- pub fn refresh(root:&Path,paths:&[String],active:&Project)->Result<Self,String>{
+ pub fn refresh(root:&Path,paths:&[String],active:&Project)->Result<Self,String>{Self::refresh_with_cache(root,paths,active,true)}
+ pub fn refresh_with_cache(root:&Path,paths:&[String],active:&Project,use_cache:bool)->Result<Self,String>{
  let file=root.join(".forge-assets.json");if let Ok(meta)=fs::symlink_metadata(&file){if !meta.is_file()||meta.len()>32*1024*1024{return Err("Unsafe or oversized asset database".into());}}let mut db:Self=if file.exists(){serde_json::from_slice(&fs::read(&file).map_err(|e|e.to_string())?).unwrap_or_default()}else{Self::default()};
  db.scan_warnings.clear();db.graph.clear();db.cache_hits=0;db.cache_misses=0;for entry in db.entries.values_mut(){entry.present=false;entry.references.clear();}
  for path in paths {if !crate::valid_asset(path){continue;}let Ok(meta)=fs::symlink_metadata(root.join(path))else{continue;};if !meta.is_file(){continue;}let bytes=meta.len();let e=db.entries.entry(path.clone()).or_insert_with(||AssetEntry{id:Uuid::new_v4(),bytes,references:vec![],present:true});e.bytes=bytes;e.present=true;}
@@ -29,8 +30,9 @@ impl AssetDatabase {
  let cached=old.remove(&rel).filter(|d|Some(d.stamp)==stamp);let doc=if let Some(d)=cached{db.cache_hits+=1;Some(d)}else{db.cache_misses+=1;let tag=stamp.unwrap_or([0;3]);if scene{Project::load(&p).ok().map(|project|collect(&project.objects,&library,tag))}else if let Ok(v)=serde_json::from_slice::<Vec<Object>>(&fs::read(&p).map_err(|e|e.to_string())?){Some(collect(&v,&library,tag))}else if let(Some(parent),Some(name))=(p.parent(),p.file_name().and_then(|x|x.to_str())){crate::read_composite_for_edit(parent,name).ok().map(|doc|{let mut result=collect(&doc.objects,&library,tag);for n in doc.nested{if crate::valid_prefab_file(&n.file){result.prefabs.push(format!("{library}{}",n.file));}}result.prefabs.sort();result.prefabs.dedup();result})}else{None}};
  if let Some(doc)=doc{refs(db,&doc,&rel);if stamp.is_some()&&db.documents.len()<4096{db.documents.insert(rel,doc);}}else if db.scan_warnings.len()<256{db.scan_warnings.push(format!("{}: {rel}",if scene{"Could not parse scene"}else{"Could not parse prefab"}));}
  }Ok(())}
- let mut old=std::mem::take(&mut db.documents);let mut visited=0;walk(&mut db,root,root,0,&mut visited,&mut old)?;refs(&mut db,&collect(&active.objects,"prefabs/",[0;3]),"Active scene (memory)");
+ let mut old=std::mem::take(&mut db.documents);if !use_cache{old.clear();}let mut visited=0;walk(&mut db,root,root,0,&mut visited,&mut old)?;refs(&mut db,&collect(&active.objects,"prefabs/",[0;3]),"Active scene (memory)");
  if let Ok(base)=root.join("assets").canonicalize(){for(rel,entry)in db.entries.iter_mut(){if crate::valid_asset(rel){if let Ok(path)=root.join(rel).canonicalize(){if path.starts_with(&base){if let Ok(meta)=fs::metadata(path){if meta.is_file(){entry.present=true;entry.bytes=meta.len();}}}}}}}
+ db.entries.retain(|_,entry|entry.present||!entry.references.is_empty());
  // Cache is disposable. Drop parsed-document cache rather than exceeding file budget.
  let mut data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;if data.len()>32*1024*1024{db.documents.clear();data=serde_json::to_vec(&db).map_err(|e|e.to_string())?;}if data.len()>32*1024*1024{return Err("Asset database exceeds 32 MiB".into());}if !fs::read(&file).is_ok_and(|old|old==data){fs::write(file,data).map_err(|e|e.to_string())?;}Ok(db)
  }
@@ -52,3 +54,5 @@ pub fn import_aseprite(json:&Path,root:&Path)->Result<Object,String>{
  let rel=format!("assets/{}.png",Uuid::new_v4());fs::create_dir_all(root.join("assets")).map_err(|e|e.to_string())?;dst.save(root.join(&rel)).map_err(|e|e.to_string())?;let mut o=Object::new(json.file_stem().and_then(|s|s.to_str()).unwrap_or("Aseprite"),[0.,0.],[w as f32,h as f32],[255;4]);o.sprite=Some(rel);let (name,clip)=clips.first_key_value().ok_or("No tags")?;o.clip_name=name.clone();o.animation=clip.clone();o.clips=clips;Ok(o)
 }
 #[cfg(test)]mod tests{use super::*;#[test]fn timed_frames(){let a=Animation{columns:2,frames:2,durations:vec![100,300],..Default::default()};assert_eq!(a.frame(0.05),0);assert_eq!(a.frame(0.2),1);assert_eq!(a.frame(0.41),0);}}
+
+#[cfg(test)]mod missing33{use super::*;#[test]fn missing_asset_report(){let mut db=AssetDatabase::default();db.graph.insert("scene".into(),vec!["assets/missing.png".into()]);db.entries.insert("assets/missing.png".into(),AssetEntry{id:Uuid::new_v4(),bytes:0,references:vec!["scene".into()],present:false});let(a,m)=db.transitive_assets("scene");assert_eq!(a,m);}}

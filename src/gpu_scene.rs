@@ -65,10 +65,10 @@ impl GpuDraw<'_,'_> {
    let (center,frame_size)=crate::sprite_frame_geometry(o,false,crate::animation_time(o,elapsed));let center=Vec2::from_array(center);let (sin,cos)=o.rotation.to_radians().sin_cos();
    let mut tint=o.color;tint[3]=crate::sprite_visual_alpha(o,crate::animation_time(o,elapsed),tint[3]);let mut params=LightParams{tint:Vec4::from_array(tint.map(|x|x as f32/255.)),uv:Vec4::new(uv[0][0],uv[0][1],uv[2][0],uv[2][1]),geometry:Vec4::new(center.x,center.y,frame_size[0],frame_size[1]),rotation:Vec4::new(cos,sin,p.settings.ambient.clamp(0.,1.),p.settings.shadow_softness.clamp(0.,32.)),light:[Vec4::ZERO;3],light_color:[Vec4::ZERO;3],blockers:[Vec4::ZERO;12]};
    let strength=|(s,l):&(&Object,&crate::Light)|{let d2=center.distance_squared(Vec2::from_array(s.position));if d2>=l.radius*l.radius{return 0.;}(1.-d2.sqrt()/l.radius).max(0.)*l.intensity.max(0.)};
-   let relevant=best_n(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().enumerate(){
+   let relevant=best_n_fixed::<_,3>(self.state.light_cache.candidates(center.to_array(),lights.len()).map(|i|lights[i]).filter_map(|x|{let s=strength(&x);(s>0.).then_some((-s,x))}),p.settings.gpu_light_count.clamp(1,3) as usize);for (li,(_,(source,light))) in relevant.into_iter().flatten().enumerate(){
     params.light[li]=Vec4::new(source.position[0],source.position[1],light.radius,light.intensity);params.light_color[li]=Vec4::new(light.color[0],light.color[1],light.color[2],1.);
-    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size)+Vec2::splat(p.settings.shadow_softness.clamp(0.,32.));let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
-    for (i,(_,b)) in blocks.into_iter().enumerate(){params.blockers[li*4+i]=b;}
+    let lp=Vec2::from_array(source.position);let margin=Vec2::from_array(o.size)+Vec2::splat(p.settings.shadow_softness.clamp(0.,32.));let lo=center.min(lp)-margin;let hi=center.max(lp)+margin;let local=indexed&&self.state.solid_cache.query_into(((lo+hi)*0.5).to_array(),((hi-lo)*0.5).to_array(),LIGHT_CELL,&mut candidates);let ids=(0..if local{0}else{solids.len()}).chain(candidates.iter().copied().filter(|_|local));let blocks=best_n_fixed::<_,4>(ids.map(|i|solids[i]).filter(|(id,_,_,_)|*id!=o.id&&*id!=source.id).filter_map(|(_,pos,a,b)|{(a.x<=hi.x&&a.y<=hi.y&&b.x>=lo.x&&b.y>=lo.y).then_some((pos.distance_squared(center),Vec4::new(a.x,a.y,b.x,b.y)))}),4);
+    for (i,(_,b)) in blocks.into_iter().flatten().enumerate(){params.blockers[li*4+i]=b;}
    }
    let mut t=*transform;t.translation.x=center.x;t.translation.y=center.y;t.scale=Vec3::new(frame_size[0],frame_size[1],1.);
    if let Some(v)=self.state.visuals.get(&entity){if self.materials.get(&v.material).is_some_and(|m|m.params!=params||m.albedo!=albedo||m.normal!=normal){if let Some(m)=self.materials.get_mut(&v.material){m.params=params;m.albedo=albedo;m.normal=normal;}}if v.transform!=t{self.commands.entity(v.entity).insert(t);if let Some(v)=self.state.visuals.get_mut(&entity){v.transform=t;}}}
@@ -81,6 +81,7 @@ impl GpuDraw<'_,'_> {
 }
 
 /// Keep the same stable distance ordering as a full sort, but retain only the requested candidates.
+#[cfg(test)]
 fn best_n<T>(items:impl Iterator<Item=(f32,T)>,n:usize)->Vec<(f32,T)>{let mut best:Vec<(f32,T)>=Vec::with_capacity(n);if n==0{return best;}for item in items{let at=best.partition_point(|v|v.0.total_cmp(&item.0).is_le());if at<n{if best.len()==n{best.pop();}best.insert(at,item);}}best}
 #[cfg(test)]mod ranking_tests{use super::*;#[test]fn stable_top_four(){let a=[(4_f32,0),(1.,1),(1.,2),(3.,3),(2.,4),(0.,5)];let mut all=a.to_vec();all.sort_by(|a,b|a.0.total_cmp(&b.0));assert_eq!(best_n(a.into_iter(),4),all[..4]);}}
 
@@ -103,3 +104,11 @@ static LIGHT_REBUILDS:AtomicU64=AtomicU64::new(0);static LIGHT_HITS:AtomicU64=At
 /// Process-wide broad phase cache counters; no GPU timestamps implied.
 pub fn index_cache_stats()->[u64;4]{[LIGHT_REBUILDS.load(Ordering::Relaxed),LIGHT_HITS.load(Ordering::Relaxed),SOLID_REBUILDS.load(Ordering::Relaxed),SOLID_HITS.load(Ordering::Relaxed)]}
 
+
+/// Fixed-size stable ranking; no heap allocation for small per-sprite candidate sets.
+fn best_n_fixed<T,const N:usize>(items:impl Iterator<Item=(f32,T)>,n:usize)->[Option<(f32,T)>;N]{
+ let mut best:[Option<(f32,T)>;N]=std::array::from_fn(|_|None);let n=n.min(N);if n==0{return best;}
+ for item in items{let at=best[..n].iter().position(|v|v.as_ref().is_none_or(|v|v.0.total_cmp(&item.0).is_gt())).unwrap_or(n);if at<n{for i in (at+1..n).rev(){best.swap(i,i-1);}best[at]=Some(item);}}
+ best
+}
+#[cfg(test)]mod fixed_ranking33{use super::*;#[test]fn matches_previous_stable_order(){let a=[(4_f32,0),(1.,1),(1.,2),(3.,3),(2.,4),(0.,5)];let fixed:Vec<_>=best_n_fixed::<_,4>(a.into_iter(),4).into_iter().flatten().collect();assert_eq!(fixed,best_n(a.into_iter(),4));}}

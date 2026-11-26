@@ -1,0 +1,31 @@
+test_pack_assets.py: PASS (2 tests)
+validate_0720.py: PASS (3 tests)
+validate_0722.py: PASS (3 tests)
+validate_0723.py: PASS (3 tests)
+validate_0724.py: PASS (4 tests)
+validate_0725.py: PASS (3 tests)
+validate_0726.py: PASS (4 tests)
+validate_0727.py: PASS (4 tests)
+validate_0728.py: PASS (3 tests)
+validate_0729.py: PASS (4 tests)
+validate_0730.py: PASS (4 tests)
+validate_0731.py: PASS (4 tests)
+validate_0732.py: PASS (3 tests)
+validate_0733.py: PASS (4 tests)
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level4.forge.json]: 55 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+validate_gpu_scene.py: PASS (2 tests)
+validate_studio_pro.py: PASS (2 tests)
+validate_ui_studio.py: PASS (2 tests)
+Python unittest executions: 54
+Previous example files unchanged: 77
+Previous WGSL files unchanged: 10
+JSON and TOML parse: PASS
+Cargo manifest unchanged except root version: PASS
+No files removed: PASS
+Cargo check attempted: cargo: command not found (exit 127).
+Rust tests: NOT RUN (5 new tests authored).
+Windows GUI, audio, GPU timestamps and measured performance: NOT RUN.
+Patch excludes Cargo.lock and target.

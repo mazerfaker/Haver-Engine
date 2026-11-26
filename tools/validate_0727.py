@@ -1,4 +1,4 @@
-"""Static checks for v0.7.32; do not represent Rust compilation or GPU/audio playback."""
+"""Static checks for v0.7.33; do not represent Rust compilation or GPU/audio playback."""
 import json,re,tomllib,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -10,12 +10,12 @@ class Changes(unittest.TestCase):
   s=(ROOT/'src/prefab_studio.rs').read_text();self.assertEqual(s.count('property_channels.values_mut()'),3);self.assertIn('next.motion.property_channels=old.motion.property_channels.clone()',s)
  def test_dsp_control_wiring(self):
   decoder=(ROOT/'src/bin/forge_player/audio_dsp.rs').read_text();self.assertIn('Arc<AtomicU64>',decoder);self.assertIn('self.until_poll=128',decoder);self.assertIn('self.dsp.set_effects',decoder)
-  player=(ROOT/'src/bin/forge_player.rs').read_text();self.assertIn('egui::Key::F8',player);self.assertIn('c.set(sound.effects.unwrap_or_default())',player);self.assertIn('let settings=if s.looping{PlaybackSettings::ONCE',player)
+  player=(ROOT/'src/bin/forge_player.rs').read_text();self.assertIn('egui::Key::F8',player);self.assertIn('c.set(sound.effective_effects(&game.project.settings).unwrap_or_default())',player);self.assertIn('let settings=if s.looping{PlaybackSettings::ONCE',player)
   editor=(ROOT/'src/bin/forge_editor/audio_preview.rs').read_text();self.assertIn('PlaybackSettings::ONCE.with_volume',editor);self.assertIn('Apply effects to selected sound',editor)
  def test_lighting_and_atlas(self):
   w=(ROOT/'src/gpu_scene.wgsl').read_text();self.assertLess(w.index('if dist2>=light.z*light.z'),w.index('if !any_blocker'));self.assertIn('visible=f32(samples)',w);self.assertIn('1.0-dist/light.z',w)
   s=(ROOT/'src/atlas_studio.rs').read_text();self.assertIn('old==data',s);self.assertIn('fs::rename(&temp,&target)',s)
   e=(ROOT/'src/bin/forge_editor.rs').read_text();self.assertIn('Scene saved; {errors} atlas sync errors',e)
  def test_version_and_lock(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.32');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.26"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.32\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.32"',out);self.assertIn('version = "0.16.1"',out)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.33');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.26"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.33\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.33"',out);self.assertIn('version = "0.16.1"',out)
 if __name__=='__main__':unittest.main()
