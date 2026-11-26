@@ -1,0 +1,6 @@
+STATIC PASS [level2.forge.json]: 53 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [level3.forge.json]: 54 objects, unique IDs, 3 cores, assets and atlas ranges valid
+STATIC PASS [project.forge.json]: 52 objects, unique IDs, 3 cores, assets and atlas ranges valid
+PASS TOML and JSON parsing
+PASS 21 example files byte-identical to v0.7.6
+NOT RUN Rust compilation, WGSL validation, Windows GUI, benchmarks

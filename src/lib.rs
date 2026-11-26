@@ -92,3 +92,5 @@ mod demo;
 pub use demo::*;
 
 pub mod performance;
+
+pub mod spatial;

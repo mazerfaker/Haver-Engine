@@ -1,3 +1,7 @@
+# Forge Engine v0.7.7 — Performance Foundation
+
+See [changes and limitations](docs/PERFORMANCE_077.md). Run `CHECK_WINDOWS.bat` before building. For player-only build use `BUILD_PLAYER_ONLY.bat`.
+
 # Forge Engine v0.7.6 — Professional & Performance
 
 Experimental source update. See [performance report](docs/PERFORMANCE_076.md). Start with CHECK_WINDOWS.bat. No compiled binaries supplied.
