@@ -15,5 +15,5 @@ class Changes37(unittest.TestCase):
  def test_asset_prefab_gpu(self):
   self.assertIn('pub fn upstream_documents',src('src/max_tools.rs'));self.assertIn('write_dependency_cache',src('src/max_tools.rs'));self.assertIn('External child attachments',src('src/bin/forge_editor/ultimate.rs'));self.assertIn('RenderAssetUsages::RENDER_WORLD',src('src/gpu_scene.rs'));self.assertIn('p.light[2].z<=0.0',src('src/gpu_scene.wgsl'))
  def test_lock(self):
-  v=tomllib.loads(src('Cargo.toml'))['package']['version'];self.assertEqual(v,'0.7.43');pat=re.search(r"\$pattern='([^']+)'",src('tools/prepare_lock.ps1')).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.36"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';new,n=re.subn(pat,r'\g<1>'+v+r'\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.43"',new);self.assertIn('version = "0.16.1"',new)
+  v=tomllib.loads(src('Cargo.toml'))['package']['version'];self.assertEqual(v,'0.7.44');pat=re.search(r"\$pattern='([^']+)'",src('tools/prepare_lock.ps1')).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.36"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';new,n=re.subn(pat,r'\g<1>'+v+r'\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.44"',new);self.assertIn('version = "0.16.1"',new)
 if __name__=='__main__':unittest.main()

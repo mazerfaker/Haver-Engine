@@ -1,4 +1,4 @@
-"""Static checks for v0.7.43; do not represent Rust compilation or GPU/audio playback."""
+"""Static checks for v0.7.44; do not represent Rust compilation or GPU/audio playback."""
 import json,re,tomllib,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -17,5 +17,5 @@ class Changes(unittest.TestCase):
   s=(ROOT/'src/atlas_studio.rs').read_text();self.assertIn('old==data',s);self.assertIn('fs::rename(&temp,&target)',s)
   e=(ROOT/'src/bin/forge_editor.rs').read_text();self.assertIn('Scene saved; {errors} atlas sync errors',e)
  def test_version_and_lock(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.43');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.26"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.43\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.43"',out);self.assertIn('version = "0.16.1"',out)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.44');s=(ROOT/'tools/prepare_lock.ps1').read_text();pat=re.search(r"\$pattern='([^']+)'",s).group(1);old='[[package]]\nname = "forge_engine"\nversion = "0.7.26"\n\n[[package]]\nname = "bevy"\nversion = "0.16.1"\n';out,n=re.subn(pat,r'\g<1>0.7.44\g<2>',old);self.assertEqual(n,1);self.assertIn('version = "0.7.44"',out);self.assertIn('version = "0.16.1"',out)
 if __name__=='__main__':unittest.main()

@@ -22,7 +22,7 @@ class Changes(unittest.TestCase):
    i=next((i for i,v in enumerate(best) if v[0]>item[0]),len(best));best.insert(i,item);best=best[:4]
   self.assertEqual(best,sorted(a,key=lambda x:x[0])[:4]);self.assertIn('best_n_fixed::<_,4>',(ROOT/'src/gpu_scene.rs').read_text())
  def test_lock_and_prefab(self):
-  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.43');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
-  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.32"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(pat,r'\g<1>0.7.43\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
+  self.assertEqual(tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version'],'0.7.44');pat=re.search(r"\$pattern='([^']+)'",(ROOT/'tools/prepare_lock.ps1').read_text()).group(1)
+  raw='[[package]]\nname = "forge_engine"\nversion = "0.7.32"\n[[package]]\nname = "bevy"\nversion = "0.16.1"';out,n=re.subn(pat,r'\g<1>0.7.44\g<2>',raw);self.assertEqual(n,1);self.assertIn('version = "0.16.1"',out)
   ui=(ROOT/'src/bin/forge_editor/ultimate.rs').read_text();self.assertIn('Local object hierarchy',ui);self.assertIn('Arc::make_mut(doc)',ui);self.assertIn('update_composite_prefab',ui)
 if __name__=='__main__':unittest.main()

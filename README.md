@@ -1,3 +1,7 @@
+# Haver Engine v0.7.44 — Save Game PRO foundation
+
+Three independent checkpoint slots in the Player, with legacy slot 1 compatibility. Candidate based on CI-verified v0.7.43. See `docs/RELEASE_0744.md`.
+
 # Haver Engine v0.7.43 — Ultimate Tools & Performance
 
 Candidate based on CI-verified v0.7.42. See `docs/RELEASE_0743.md`.
