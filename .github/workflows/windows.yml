@@ -26,6 +26,7 @@ jobs:
           ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: '1.100.0'
           targets: x86_64-pc-windows-msvc
       - name: Bootstrap only when Cargo.lock is missing
         id: lock
@@ -88,6 +89,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/requirements-ci.txt
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: forge-windows-msvc
@@ -101,12 +104,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git ls-files --error-unmatch Cargo.lock
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo fetch --locked
+          cargo fetch --locked --target x86_64-pc-windows-msvc
           exit $LASTEXITCODE
       - name: Install Python validator dependencies
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check Pillow==12.3.0
+          python -m pip install --disable-pip-version-check -r tools/requirements-ci.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -c "import PIL; print(PIL.__version__)"
           exit $LASTEXITCODE
@@ -176,4 +179,4 @@ jobs:
             Cargo.lock
           if-no-files-found: warn
           retention-days: 30
-# Historic package: HaverEngine-v0.7.41-Windows-portable.zip
+# Historic package: HaverEngine-v0.7.42-Windows-portable.zip

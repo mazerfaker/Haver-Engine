@@ -1,3 +1,7 @@
+# Haver Engine v0.7.42 — Engine Stabilization
+
+CI candidate based on verified Windows v0.7.41 (`352e737`). Explicit f32 UI strokes, scoped shared DSP diagnostics, preference sidecar validation and regression tests; Windows verification pending. See `docs/RELEASE_0742.md`.
+
 # Haver Engine v0.7.41 — Persistent Timeline & Async Transactions
 
 Formerly Forge Engine. Same project, version history and runtime. See [GitHub CI policy](docs/GITHUB_CI.md). Internal crate, project extensions and preferences remain compatible. Windows build is not yet verified.

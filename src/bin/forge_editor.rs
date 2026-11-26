@@ -30,6 +30,8 @@ mod gameplay_ui;
 mod polish;
 #[path = "forge_editor/audio_preview.rs"]
 mod audio_preview;
+// Preview uses a subset of the shared Player DSP implementation. Keep the Player API intact.
+#[allow(dead_code, reason = "Player-only shared DSP entry points are intentionally unused in the editor")]
 #[path = "forge_player/audio_dsp.rs"]
 mod audio_dsp;
 #[path="forge_editor/panel_icons.rs"] mod panel_icons;

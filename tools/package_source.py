@@ -18,7 +18,15 @@ def main():
     head=git('rev-parse','HEAD').decode().strip()
     version=tomllib.loads(blob(head,'Cargo.toml').decode())['package']['version']
     tags=[t for t in git('tag','--merged',head,'--list','source-v*').decode().splitlines() if re.fullmatch(r'source-v\d+(?:\.\d+)+',t) and version_tuple(t)<version_tuple('source-v'+version)]
-    old=a.base or max(tags,key=version_tuple,default=None)
+    # A release can name its exact verified predecessor, rather than an archival tag.
+    marker=ROOT/'docs'/'PATCH_BASE.txt'
+    preferred=marker.read_text(encoding='utf-8').strip() if marker.is_file() else None
+    old=a.base or preferred or max(tags,key=version_tuple,default=None)
+    if old:
+        git('merge-base','--is-ancestor',old,head)
+        base_ver=tomllib.loads(blob(old,'Cargo.toml').decode())['package']['version']
+        if version_tuple('source-v'+base_ver)>=version_tuple('source-v'+version):
+            raise ValueError('Patch base must be an older version')
     out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
     now={f for f in files(head) if eligible(f)}
     full=out/f'HaverEngine-v{version}-source.zip'
