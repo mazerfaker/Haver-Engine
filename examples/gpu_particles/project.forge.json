@@ -1,0 +1,370 @@
+{
+  "schema": 2,
+  "name": "Forge GPU Particles and Multi-light QA",
+  "isometric": false,
+  "settings": {
+    "gpu_lighting": true,
+    "ambient": 0.2,
+    "gpu_particles": true,
+    "gpu_light_count": 3,
+    "shadow_softness": 12.0
+  },
+  "objects": [
+    {
+      "id": "199adaf3-aced-5a99-be2e-31ea5f3ab43e",
+      "name": "Normal mapped floor",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        680,
+        420
+      ],
+      "rotation": 0,
+      "layer": 0,
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "sprite": "assets/panel.png",
+      "player": false,
+      "production": {
+        "normal_map": "assets/panel_normal.png"
+      }
+    },
+    {
+      "id": "a59f033e-b996-50db-ad18-349e389713c0",
+      "name": "Shadow blocker",
+      "position": [
+        25,
+        0
+      ],
+      "size": [
+        60,
+        110
+      ],
+      "rotation": 0,
+      "layer": 1,
+      "color": [
+        120,
+        130,
+        150,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "body": "Static"
+    },
+    {
+      "id": "3eee90d4-2cd8-5a82-924a-caef8d914af7",
+      "name": "Move light (WASD)",
+      "position": [
+        -150,
+        70
+      ],
+      "size": [
+        18,
+        18
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        230,
+        160,
+        255
+      ],
+      "sprite": null,
+      "player": true,
+      "body": "None",
+      "pro": {
+        "light": {
+          "radius": 450,
+          "intensity": 1.7,
+          "color": [
+            1.0,
+            0.75,
+            0.45
+          ]
+        }
+      }
+    },
+    {
+      "id": "45f23af8-81e6-5354-b978-89e44269c5d5",
+      "name": "Cool fill light",
+      "position": [
+        230,
+        100
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        140,
+        190,
+        255,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "light": {
+          "radius": 300,
+          "intensity": 1.2,
+          "color": [
+            0.2,
+            0.5,
+            1.0
+          ]
+        }
+      }
+    },
+    {
+      "id": "f3d7f635-e756-5c9e-bbac-c3be87ffaacf",
+      "name": "Red fill light",
+      "position": [
+        0,
+        -140
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "rotation": 0,
+      "layer": 2,
+      "color": [
+        255,
+        100,
+        90,
+        255
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "light": {
+          "radius": 220,
+          "intensity": 0.9,
+          "color": [
+            1.0,
+            0.2,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "id": "ce179534-0721-5d0f-8470-a7e1e2b7bba8",
+      "name": "Fire",
+      "position": [
+        -230,
+        -140
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "emitter": {
+          "effect": "Fire",
+          "rate": 40,
+          "lifetime": 1,
+          "velocity": [
+            0,
+            100
+          ],
+          "color": [
+            255,
+            120,
+            40,
+            230
+          ],
+          "size": 15,
+          "spread": 30
+        }
+      }
+    },
+    {
+      "id": "42a32438-c0d8-59a3-bb92-f5f6358aedde",
+      "name": "Smoke",
+      "position": [
+        -70,
+        -150
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "emitter": {
+          "effect": "Smoke",
+          "rate": 24,
+          "lifetime": 2,
+          "velocity": [
+            0,
+            45
+          ],
+          "color": [
+            180,
+            190,
+            200,
+            155
+          ],
+          "size": 24,
+          "spread": 25
+        }
+      }
+    },
+    {
+      "id": "67574ff3-d153-56c7-a2c7-2a4dbbf6b654",
+      "name": "Sparks",
+      "position": [
+        70,
+        -120
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "emitter": {
+          "effect": "Sparks",
+          "rate": 80,
+          "lifetime": 0.7,
+          "velocity": [
+            35,
+            180
+          ],
+          "color": [
+            255,
+            200,
+            60,
+            255
+          ],
+          "size": 7,
+          "spread": 22
+        }
+      }
+    },
+    {
+      "id": "811bf570-bdbf-51d1-9642-dbf1ba4fae1b",
+      "name": "Rain",
+      "position": [
+        240,
+        170
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "emitter": {
+          "effect": "Rain",
+          "rate": 70,
+          "lifetime": 0.8,
+          "velocity": [
+            -20,
+            -300
+          ],
+          "color": [
+            100,
+            180,
+            255,
+            210
+          ],
+          "size": 7,
+          "spread": 55
+        }
+      }
+    },
+    {
+      "id": "4e867488-10b1-5682-8486-8f04c4c1156e",
+      "name": "Snow",
+      "position": [
+        100,
+        160
+      ],
+      "size": [
+        2,
+        2
+      ],
+      "rotation": 0,
+      "layer": 4,
+      "color": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sprite": null,
+      "player": false,
+      "pro": {
+        "emitter": {
+          "effect": "Snow",
+          "rate": 35,
+          "lifetime": 2,
+          "velocity": [
+            10,
+            -45
+          ],
+          "color": [
+            255,
+            255,
+            255,
+            230
+          ],
+          "size": 10,
+          "spread": 80
+        }
+      },
+      "production": {
+        "particle_texture": "assets/particle.png"
+      }
+    }
+  ]
+}

@@ -81,7 +81,7 @@ pub(super) fn sync_game_camera(e:Res<Editor>,target:Res<GamePreviewTarget>,mut i
 #[derive(Component)] pub(super) struct PreviewParticle;
 pub(super) fn preview_particles(mut commands:Commands,e:Res<Editor>,mut old:Query<(Entity,&mut Sprite,&mut Transform),With<PreviewParticle>>){
  let mut pool=old.iter_mut();let mut count=0;
- if let Some(p)=e.play.as_ref(){for o in &p.objects{for (pos,size,c) in forge_engine::particles(o,e.sim.elapsed){if count>=4096{break;}count+=1;let pos=project_point(pos,p.isometric);let sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],c[3]),Vec2::splat(size));let transform=Transform::from_xyz(pos[0],pos[1],100.);if let Some((_,mut s,mut t))=pool.next(){*s=sprite;*t=transform;}else{commands.spawn((PreviewParticle,sprite,transform));}}}}
+ if let Some(p)=e.play.as_ref(){let gpu=forge_engine::gpu_particles::selected(p);for o in &p.objects{if gpu.contains(&o.id){continue;}for (pos,size,c) in forge_engine::particles(o,e.sim.elapsed){if count>=4096{break;}count+=1;let pos=project_point(pos,p.isometric);let sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],c[3]),Vec2::splat(size));let transform=Transform::from_xyz(pos[0],pos[1],100.);if let Some((_,mut s,mut t))=pool.next(){*s=sprite;*t=transform;}else{commands.spawn((PreviewParticle,sprite,transform));}}}}
  for (id,_,_) in pool{commands.entity(id).despawn();}
 }
 
@@ -89,3 +89,5 @@ pub(super) fn gpu_scene_sync(e:Res<Editor>,mut draw:forge_engine::gpu_scene::Gpu
  let p=e.play.as_ref().unwrap_or(&e.project);if (!p.settings.gpu_lighting||p.isometric)&&draw.idle(){return;}let elapsed=if e.play.is_some(){e.sim.elapsed}else{e.preview};let objects:HashMap<_,_>=p.objects.iter().map(|o|(o.id,o)).collect();
  draw.sync(p,e.path.as_ref().and_then(|p|p.parent()),elapsed,sprites.iter_mut().filter_map(|(entity,id,s,t,v)|objects.get(&id.0).map(|o|(entity,*o,s,t,v))));
 }
+
+pub(super) fn gpu_particles_sync(e:Res<Editor>,time:Res<Time>,mut draw:forge_engine::gpu_particles::ParticleDraw){let p=e.play.as_ref().unwrap_or(&e.project);let dt=if e.play.is_some()&&e.master.paused{0.}else{time.delta_secs()};draw.sync(p,e.path.as_ref().and_then(|p|p.parent()),dt);}

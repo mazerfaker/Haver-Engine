@@ -89,6 +89,8 @@ mod tests {
     }
     #[test] fn gpu_sample_loads() {let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/gpu_scene/project.forge.json");let p=Project::load(&path).unwrap();assert!(p.settings.gpu_lighting);assert!(p.objects.iter().any(|o|o.pro.light.is_some()));let normal=p.objects.iter().find_map(|o|o.production.normal_map.as_ref()).unwrap();assert!(path.parent().unwrap().join(normal).is_file());assert_eq!(crate::modules::validate(&p).is_ok(),cfg!(feature="lighting"));}
     #[test] fn legacy_gpu_defaults() {let p=Project::default();let mut v=serde_json::to_value(&p).unwrap();v["settings"].as_object_mut().unwrap().remove("gpu_lighting");v["objects"][0]["production"].as_object_mut().unwrap().remove("normal_map");let restored:Project=serde_json::from_value(v).unwrap();assert!(!restored.settings.gpu_lighting);assert!(restored.objects[0].production.normal_map.is_none());}
+    #[test] fn particle_scene_roundtrip() {let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/gpu_particles/project.forge.json");let p=Project::load(&path).unwrap();assert!(p.settings.gpu_particles);assert_eq!(p.settings.gpu_light_count,3);assert_eq!(p.objects.iter().filter(|o|o.pro.emitter.is_some()).count(),5);assert_eq!(crate::modules::validate(&p).is_ok(),cfg!(feature="lighting"));assert_eq!(p,serde_json::from_value::<Project>(serde_json::to_value(&p).unwrap()).unwrap());}
+    #[test] fn legacy_particle_defaults() {let mut v=serde_json::to_value(Project::default()).unwrap();for key in ["gpu_particles","gpu_light_count","shadow_softness"]{v["settings"].as_object_mut().unwrap().remove(key);}let restored:Project=serde_json::from_value(v).unwrap();assert!(!restored.settings.gpu_particles);assert_eq!(restored.settings.gpu_light_count,1);assert_eq!(restored.settings.shadow_softness,0.);}
     #[test] fn roundtrip() { let p = Project::default(); let f = std::env::temp_dir().join(format!("{}.json", Uuid::new_v4())); p.save(&f).unwrap(); assert_eq!(p, Project::load(&f).unwrap()); fs::remove_file(f).unwrap(); }
 }
 
@@ -132,8 +134,9 @@ pub mod chunk_plan;
 pub fn adaptive_widget(w:&Widget,viewport:[f32;2],design:[u32;2])->[f32;4]{let scale=(viewport[0]/design[0].max(1) as f32).min(viewport[1]/design[1].max(1) as f32).max(0.);let size=[(w.size[0]*scale).max(0.).min(viewport[0]),(w.size[1]*scale).max(0.).min(viewport[1])];[(w.anchor[0]*viewport[0]).clamp(0.,(viewport[0]-size[0]).max(0.)),(w.anchor[1]*viewport[1]).clamp(0.,(viewport[1]-size[1]).max(0.)),size[0],size[1]]}
 #[cfg(test)] mod adaptive_tests{use super::*;#[test]fn fits(){let w=Widget{anchor:[1.,1.],..Default::default()};let r=adaptive_widget(&w,[320.,180.],[640,360]);assert!(r[0]+r[2]<=320.&&r[1]+r[3]<=180.);}}
 
-pub fn animation_time(o:&Object,elapsed:f32)->f32 {if o.clip_name=="Attack" {o.pro.variables.get("forge_attack_time").copied().unwrap_or(elapsed)}else{elapsed}}
+pub fn animation_time(o:&Object,elapsed:f32)->f32 {if o.clip_name=="Attack" {o.pro.variables.get("forge_attack_time").copied().unwrap_or(elapsed)}else{(elapsed-o.pro.variables.get("forge_clip_started").copied().unwrap_or(0.)).max(0.)}}
 
 pub mod combat;
 
-#[cfg(feature="lighting")] pub mod gpu_scene;
+#[cfg(feature="lighting")] #[allow(dead_code)] pub mod gpu_scene; // ShaderType derive generates unused check helpers
+#[cfg(feature="lighting")] pub mod gpu_particles;

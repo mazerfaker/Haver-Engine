@@ -9,16 +9,16 @@ use uuid::Uuid;
 impl Default for PhysicsPro {fn default()->Self{Self{shape:Shape::Box,friction:0.6,mass:1.,lock_rotation:true}}}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Light {pub radius:f32,pub intensity:f32,pub color:[f32;3]}
 impl Default for Light {fn default()->Self{Self{radius:180.,intensity:1.,color:[1.,0.8,0.5]}}}
-#[derive(Clone,Copy,Debug,Default,PartialEq,Serialize,Deserialize)] pub enum Effect {#[default] Fire,Smoke,Rain,Snow,Custom}
-#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Emitter {pub effect:Effect,pub rate:f32,pub lifetime:f32,pub velocity:[f32;2],pub color:[u8;4],pub size:f32}
-impl Default for Emitter {fn default()->Self{Self{effect:Effect::Fire,rate:20.,lifetime:1.,velocity:[0.,60.],color:[255,130,40,220],size:5.}}}
-impl Emitter {pub fn preset(effect:Effect)->Self{let mut e=Self{effect,..Default::default()}; match effect{Effect::Smoke=>{e.color=[150,150,150,120];e.lifetime=3.;e.size=12.;},Effect::Rain=>{e.velocity=[-20.,-400.];e.color=[150,190,255,180];e.rate=70.;},Effect::Snow=>{e.velocity=[10.,-35.];e.color=[255;4];e.lifetime=4.;},_=>{}}e}}
-#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Sound {pub path:String,pub volume:f32,pub music:bool,pub looping:bool,pub spatial:bool,pub distance:f32}
-impl Default for Sound {fn default()->Self{Self{path:String::new(),volume:1.,music:false,looping:false,spatial:false,distance:400.}}}
+#[derive(Clone,Copy,Debug,Default,PartialEq,Serialize,Deserialize)] pub enum Effect {#[default] Fire,Smoke,Rain,Snow,Custom,Sparks}
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Emitter {pub effect:Effect,pub rate:f32,pub lifetime:f32,pub velocity:[f32;2],pub color:[u8;4],pub size:f32,pub spread:f32}
+impl Default for Emitter {fn default()->Self{Self{effect:Effect::Fire,rate:20.,lifetime:1.,velocity:[0.,60.],color:[255,130,40,220],size:5.,spread:12.}}}
+impl Emitter {pub fn preset(effect:Effect)->Self{let mut e=Self{effect,..Default::default()}; match effect{Effect::Smoke=>{e.color=[150,150,150,120];e.lifetime=3.;e.size=12.;},Effect::Rain=>{e.velocity=[-20.,-400.];e.color=[150,190,255,180];e.rate=70.;e.spread=100.;},Effect::Snow=>{e.velocity=[10.,-35.];e.color=[255;4];e.lifetime=4.;e.spread=100.;},Effect::Sparks=>{e.velocity=[0.,160.];e.lifetime=0.65;e.rate=80.;e.size=3.;e.color=[255,205,75,255];e.spread=25.;},_=>{}}e}}
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Sound {pub path:String,pub volume:f32,pub music:bool,pub looping:bool,pub spatial:bool,pub distance:f32,pub speed:f32}
+impl Default for Sound {fn default()->Self{Self{path:String::new(),volume:1.,music:false,looping:false,spatial:false,distance:400.,speed:1.}}}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct Widget {pub text:String,pub action:String,pub anchor:[f32;2],pub size:[f32;2],pub group:String}
 impl Default for Widget {fn default()->Self{Self{text:"Button".into(),action:"jump".into(),anchor:[0.8,0.8],size:[120.,44.],group:String::new()}}}
-#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct GameSettings {pub gpu_lighting:bool,pub production:crate::ProductionSettings,pub rapier:bool,pub ambient:f32,pub master:f32,pub music:f32,pub sfx:f32,pub widgets:Vec<Widget>}
-impl Default for GameSettings {fn default()->Self{Self{gpu_lighting:false,production:Default::default(),rapier:false,ambient:1.,master:1.,music:1.,sfx:1.,widgets:vec![]}}}
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct GameSettings {pub gpu_lighting:bool,pub gpu_particles:bool,pub gpu_light_count:u32,pub shadow_softness:f32,pub production:crate::ProductionSettings,pub rapier:bool,pub ambient:f32,pub master:f32,pub music:f32,pub sfx:f32,pub widgets:Vec<Widget>}
+impl Default for GameSettings {fn default()->Self{Self{gpu_lighting:false,gpu_particles:false,gpu_light_count:1,shadow_softness:0.,production:Default::default(),rapier:false,ambient:1.,master:1.,music:1.,sfx:1.,widgets:vec![]}}}
 #[derive(Clone,Debug,Default,PartialEq,Serialize,Deserialize)] #[serde(default)] pub struct ProComponents {pub combat:Option<crate::combat::Combat>,pub physics:PhysicsPro,pub light:Option<Light>,pub emitter:Option<Emitter>,pub sound:Option<Sound>,pub variables:BTreeMap<String,f32>,pub graph_positions:Vec<[f32;2]>}
 /// Persistent Rapier world; topology is rebuilt only when body configuration changes.
 #[cfg(feature="physics-rapier")]

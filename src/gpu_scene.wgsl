@@ -1,6 +1,6 @@
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 struct LightParams {
- tint:vec4<f32>, uv:vec4<f32>, geometry:vec4<f32>, rotation:vec4<f32>, light:vec4<f32>, light_color:vec4<f32>, blockers:array<vec4<f32>,4>,
+ tint:vec4<f32>, uv:vec4<f32>, geometry:vec4<f32>, rotation:vec4<f32>, light:array<vec4<f32>,3>, light_color:array<vec4<f32>,3>, blockers:array<vec4<f32>,12>,
 };
 @group(2) @binding(0) var<uniform> p:LightParams;
 @group(2) @binding(1) var albedo:texture_2d<f32>;
@@ -22,13 +22,14 @@ fn occluded(a:vec2<f32>,b:vec2<f32>,bounds:vec4<f32>)->bool{
  let raw=textureSample(normals,normal_sampler,uv).xyz*2.0-1.0;
  let n=normalize(vec3<f32>(rotate(vec2<f32>(raw.x,-raw.y)),max(raw.z,0.001)));
  let local=vec2<f32>(mesh.uv.x-0.5,0.5-mesh.uv.y)*p.geometry.zw;
- let world=p.geometry.xy+rotate(local);let delta=p.light.xy-world;
+ let world=p.geometry.xy+rotate(local);
  var shade=vec3<f32>(p.rotation.z);
- if p.light.z>0.0 {
-  var visible=1.0;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,p.light.xy,p.blockers[i]){visible=0.0;}}
-  let diffuse=max(dot(n,normalize(vec3<f32>(delta,p.light.z*0.25))),0.0);
-  let attenuation=max(0.0,1.0-length(delta)/p.light.z);
-  shade+=p.light_color.xyz*(diffuse*attenuation*visible*p.light.w);
+ for(var li:u32=0u;li<3u;li=li+1u){let light=p.light[li];if light.z<=0.0{continue;}let delta=light.xy-world;
+  let perpendicular=vec2<f32>(-delta.y,delta.x)/max(length(delta),0.001);var visible=0.0;
+  let samples=select(1u,3u,p.rotation.w>0.0);
+  for(var s:u32=0u;s<samples;s=s+1u){let offset=select(0.0,f32(s)-1.0,samples>1u);let endpoint=light.xy+perpendicular*offset*p.rotation.w;var hit=false;for(var i:u32=0u;i<4u;i=i+1u){if occluded(world,endpoint,p.blockers[li*4u+i]){hit=true;}}visible+=select(1.0,0.0,hit);}
+  visible/=f32(samples);let diffuse=max(dot(n,normalize(vec3<f32>(delta,light.z*0.25))),0.0);
+  let attenuation=max(0.0,1.0-length(delta)/light.z);shade+=p.light_color[li].xyz*(diffuse*attenuation*visible*light.w);
  }
  return vec4<f32>(base.rgb*clamp(shade,vec3<f32>(0.0),vec3<f32>(1.0)),base.a);
 }

@@ -5,7 +5,7 @@ const N:u32=128;
 #[derive(Asset,TypePath,AsBindGroup,Debug,Clone)] struct ParticleMaterial{#[storage(0,read_only)] particles:Handle<ShaderStorageBuffer>}
 impl Material2d for ParticleMaterial{fn fragment_shader()->ShaderRef{"shaders/forge_particle_draw.wgsl".into()}}
 fn setup(mut commands:Commands,mut buffers:ResMut<Assets<ShaderStorageBuffer>>,mut meshes:ResMut<Assets<Mesh>>,mut mats:ResMut<Assets<ParticleMaterial>>){
- let initial:Vec<[f32;4]>=(0..N).map(|i|[0.5,0.9,i as f32/N,0.0]).collect();
+ let initial:Vec<[f32;4]>=(0..N).map(|i|[0.5,0.9,i as f32 / N as f32,0.0]).collect();
  let handle=buffers.add(ShaderStorageBuffer::from(initial));
  commands.insert_resource(ParticleBuffer(handle.clone()));commands.spawn(Camera2d);
  commands.spawn((Mesh2d(meshes.add(Rectangle::new(640.,360.))),MeshMaterial2d(mats.add(ParticleMaterial{particles:handle})),Transform::default()));

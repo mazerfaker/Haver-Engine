@@ -1,0 +1,11 @@
+Forge Engine 0.7.17 — static QA
+PASS: Signal Lost 4 scenes / 214 objects.
+PASS: pack_assets 2/2 tests.
+PASS: GPU fixture 2/2 tests (asset integrity and normal map dimensions).
+PASS: 27 existing example files byte-identical.
+PASS: JSON and TOML parse.
+PASS: Cargo metadata unchanged except version.
+PASS: verified Particle Lab hotfix byte-identical.
+PASS: update excludes Cargo.lock and target.
+Three new Rust regression tests added; not run.
+NOT RUN: rustc/cargo, Windows build, WGSL compiler, runtime visuals, measured FPS/VRAM/draw calls.

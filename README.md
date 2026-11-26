@@ -189,3 +189,7 @@ See [release notes](docs/RELEASE_0715.md) and [Windows build guide](docs/WINDOWS
 
 ## v0.7.16 — GPU & Editor Integration
 See [release report and Windows QA](docs/RELEASE_0716.md). Default CPU lighting remains active for legacy scenes; enable experimental GPU lighting in Gameplay PRO. `RUN_GPU_SCENE.bat` opens a small normal-map and moving-light test scene; `GPU_PARTICLE_LAB.bat` opens an isolated compute test. `QUICK_CHECK.bat`, `QUICK_BUILD.bat`, and `RUN_EDITOR_DEBUG.bat` reuse the existing source directory's Cargo cache. Keep your Cargo.lock and target. New version is uncompiled source, not a verified Windows release.
+
+
+## v0.7.17 — GPU particle runtime and editor refinements
+See [release notes](docs/RELEASE_0717.md). Start with QUICK_CHECK.bat, then QUICK_BUILD.bat. Open examples/gpu_particles/project.forge.json in the editor, or use RUN_GPU_PARTICLES_SCENE.bat. Existing scenes use previous defaults. GPU runtime is experimental; no Windows build was performed in the authoring environment.

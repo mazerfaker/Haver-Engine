@@ -1,0 +1,3 @@
+Forge Engine 0.7.17 update for 0.7.16 (with or without the Particle Lab hotfix).
+Back up the existing source and projects. Extract into the root of the existing source directory containing Cargo.toml; replace changed files. Cargo.lock and target are not included or deleted. prepare_lock.ps1 changes only the root package version to 0.7.17; dependency versions stay pinned.
+Run QUICK_CHECK.bat, QUICK_BUILD.bat, RUN_EDITOR_DEBUG.bat, then RUN_GPU_PARTICLES_SCENE.bat. See docs/RELEASE_0717.md for scope and limitations. New source is uncompiled here.
