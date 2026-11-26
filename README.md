@@ -1,3 +1,7 @@
+# v0.7.32 — Bezier XY & Dependency Graph (source candidate)
+
+Independent channels now support XY easing handles, cross-channel time-range movement, and cached transitive asset dependencies. GPU instancing remains isolated pending successful hardware lab validation.
+
 # v0.7.31 — Timeline, Asset Cache & Render Diagnostics (source candidate)
 
 See RELEASE_0731.md for changes, limitations and Windows acceptance checks. Start with QUICK_CHECK.bat and QUICK_TEST.bat.

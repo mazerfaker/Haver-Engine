@@ -1,0 +1,29 @@
+[
+  {
+    "id": "bb4fd607-1215-48b5-abad-94ba2dbd1160",
+    "name": "Dependency leaf",
+    "position": [
+      0,
+      0
+    ],
+    "size": [
+      680,
+      420
+    ],
+    "rotation": 0,
+    "layer": 0,
+    "color": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "sprite": "assets/panel.png",
+    "player": false,
+    "production": {
+      "normal_map": "assets/panel_normal.png"
+    },
+    "parent": null,
+    "prefab_link": null
+  }
+]
