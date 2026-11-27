@@ -1,3 +1,7 @@
+# Haver Engine v0.7.47 — Audio Mixer & Lighting
+
+Reusable dynamics envelope, offline analysis and presets; zero-contribution light rejection. Candidate based on CI-verified v0.7.46. See `docs/RELEASE_0747.md`.
+
 # Haver Engine v0.7.46 — Asset Database & Prefab Graph
 
 Read-only reverse dependency search for direct and transitive scene/prefab owners. Candidate based on CI-verified v0.7.45. See `docs/RELEASE_0746.md`.

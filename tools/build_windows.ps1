@@ -5,7 +5,7 @@ $root = (Get-Location).Path
 $log = Join-Path $root 'forge-check.log'
 $dist = Join-Path $root 'dist'
 $stage = Join-Path $root '.forge-package-stage'
-$zipName = if ($Profile -eq 'release') { 'HaverEngine-v0.7.46-Windows-portable.zip' } else { "HaverEngine-v0.7.46-Windows-$Profile-portable.zip" }
+$zipName = if ($Profile -eq 'release') { 'HaverEngine-v0.7.47-Windows-portable.zip' } else { "HaverEngine-v0.7.47-Windows-$Profile-portable.zip" }
 $zip = Join-Path $root $zipName
 function Write-Log([string]$line) {
     Write-Host $line
@@ -22,7 +22,7 @@ function Run-Native([string]$program, [string[]]$arguments) {
     if ($code -ne 0) { throw "$program failed (exit $code)" }
 }
 try {
-    Set-Content -LiteralPath $log -Encoding UTF8 -Value "Haver Engine v0.7.46 | $(Get-Date -Format o) | profile=$Profile | CheckOnly=$CheckOnly"
+    Set-Content -LiteralPath $log -Encoding UTF8 -Value "Haver Engine v0.7.47 | $(Get-Date -Format o) | profile=$Profile | CheckOnly=$CheckOnly"
     if (!$CheckOnly -and (Test-Path "$dist/BUILD_OK.txt")) { Remove-Item "$dist/BUILD_OK.txt" }
     if (!$CheckOnly -and (Test-Path $zip)) { Remove-Item $zip }
     if ($env:OS -ne 'Windows_NT') { throw 'Windows required for this build script.' }
@@ -80,7 +80,7 @@ try {
         if (!(Test-Path -LiteralPath "$stage/assets/shaders/$shader" -PathType Leaf)) { throw "Missing staged GPU lab shader: $shader" }
     }
     Get-ChildItem "$stage/*.exe" | Select-Object Name,Length | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-sizes.json"
-    $info = [ordered]@{version='0.7.46';profile=$Profile;target=$target;editor_bytes=(Get-Item "$stage/HaverEngine.exe").Length;player_bytes=(Get-Item "$stage/HaverPlayer.exe").Length}
+    $info = [ordered]@{version='0.7.47';profile=$Profile;target=$target;editor_bytes=(Get-Item "$stage/HaverEngine.exe").Length;player_bytes=(Get-Item "$stage/HaverPlayer.exe").Length}
     $info | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage/build-info.json"
     Set-Content "$stage/BUILD_OK.txt" 'Compilation, unit tests, headless demo and editor QA passed. GUI launch not tested.'
     Copy-Item $log "$stage/forge-check.log"

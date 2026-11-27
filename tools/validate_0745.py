@@ -11,6 +11,6 @@ class Timeline45(unittest.TestCase):
   self.assertIn('Apply time scale',editor)
  def test_package(self):
   version=tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version']
-  self.assertEqual(version,'0.7.46')
+  self.assertEqual(version,'0.7.47')
   self.assertEqual([p['version'] for p in tomllib.loads((ROOT/'Cargo.lock').read_text())['package'] if p['name']=='forge_engine'],[version])
 if __name__=='__main__':unittest.main()

@@ -65,6 +65,27 @@ pub struct BusDynamics {
  pub compressor_db:f32,pub ratio:f32,pub gate_db:f32,pub attack_ms:f32,pub release_ms:f32,
 }
 impl Default for BusDynamics {fn default()->Self{Self{compressor_db:-18.,ratio:3.,gate_db:-55.,attack_ms:10.,release_ms:100.}}}
+pub const DYNAMICS_PRESETS:[(&str,BusDynamics);3]=[
+ ("Gentle leveling",BusDynamics{compressor_db:-12.,ratio:2.,gate_db:-80.,attack_ms:25.,release_ms:200.}),
+ ("Voice clarity",BusDynamics{compressor_db:-18.,ratio:3.,gate_db:-45.,attack_ms:8.,release_ms:120.}),
+ ("Effects control",BusDynamics{compressor_db:-10.,ratio:4.,gate_db:-60.,attack_ms:2.,release_ms:80.}),
+];
+/// One stereo-linked gain envelope per audio stream. No per-frame allocations.
+pub struct DynamicsEnvelope{fx:BusDynamics,gain:f32,attack:f32,release:f32,threshold:f32}
+impl DynamicsEnvelope{
+ pub fn new(rate:u32,fx:BusDynamics)->Result<Self,String>{
+  if !(-60. ..=0.).contains(&fx.compressor_db)||!(1. ..=20.).contains(&fx.ratio)||!(-100. ..=0.).contains(&fx.gate_db)||!(0.1..=200.).contains(&fx.attack_ms)||!(1. ..=2000.).contains(&fx.release_ms){return Err("Invalid dynamics settings".into());}
+  if !(8000..=96000).contains(&rate){return Err("Dynamics sample rate must be 8–96 kHz".into());}
+  Ok(Self{fx,gain:1.,attack:1.-(-1000./(fx.attack_ms*rate as f32)).exp(),release:1.-(-1000./(fx.release_ms*rate as f32)).exp(),threshold:10_f32.powf(fx.gate_db/20.)})
+ }
+ pub fn next_gain(&mut self,peak:f32)->f32{
+  let peak=if peak.is_finite(){peak.abs().clamp(0.,1.)}else{0.};
+  let db=20.*peak.max(1e-10).log10();let excess=(db-self.fx.compressor_db).max(0.);
+  let target=if peak<self.threshold{0.}else{10_f32.powf(-excess*(1.-1./self.fx.ratio)/20.)};
+  self.gain+=(target-self.gain)*if target<self.gain{self.attack}else{self.release};self.gain=self.gain.clamp(0.,1.);self.gain
+ }
+ pub fn reset(&mut self){self.gain=1.;}
+}
 #[derive(Clone,Copy,Debug,Default)]
 pub struct DynamicsReport {pub frames:usize,pub peak_in:f32,pub peak_out:f32,pub rms_in:f32,pub rms_out:f32,pub max_reduction_db:f32}
 /// Process a bounded PCM16 RIFF WAV in place on a copy, preserving other chunks.
@@ -79,14 +100,10 @@ pub fn process_bus_dynamics(input:&[u8],fx:BusDynamics)->Result<(Vec<u8>,Dynamic
  }
  let fmt=fmt.ok_or("Missing WAV format")?;let data=data.ok_or("Missing WAV data")?;let channels=u16_at(fmt,2) as usize;let rate=u32_at(fmt,4);
  if u16_at(fmt,0)!=1||!(1..=2).contains(&channels)||u16_at(fmt,14)!=16||u16_at(fmt,12) as usize!=channels*2||!(8000..=96000).contains(&rate)||data.len()%(channels*2)!=0{return Err("PCM16 mono/stereo 8–96 kHz required".into());}
- let mut out=input.to_vec();let mut report=DynamicsReport::default();let(mut energy_in,mut energy_out)=(0.0_f64,0.0_f64);let mut gain=1.0_f32;
- let attack=1.-(-1000./(fx.attack_ms*rate as f32)).exp();let release=1.-(-1000./(fx.release_ms*rate as f32)).exp();
- let threshold=10_f32.powf(fx.gate_db/20.);
+ let mut out=input.to_vec();let mut report=DynamicsReport::default();let(mut energy_in,mut energy_out)=(0.0_f64,0.0_f64);let mut envelope=DynamicsEnvelope::new(rate,fx)?;
  for frame in out[data].chunks_exact_mut(channels*2){
   let peak=frame.chunks_exact(2).map(|b|(i16::from_le_bytes([b[0],b[1]]) as f32/32768.).abs()).fold(0.0_f32,f32::max);
-  let db=20.*peak.max(1e-10).log10();let excess=(db-fx.compressor_db).max(0.);
-  let target=if peak<threshold{0.}else{10_f32.powf(-excess*(1.-1./fx.ratio)/20.)};
-  gain+=(target-gain)*if target<gain{attack}else{release};gain=gain.clamp(0.,1.);
+  let gain=envelope.next_gain(peak);
   report.max_reduction_db=report.max_reduction_db.max(-20.*gain.max(1e-5).log10());report.frames+=1;
   for b in frame.chunks_exact_mut(2){let x=i16::from_le_bytes([b[0],b[1]]) as f32/32768.;let v=(x*gain*32768.).round().clamp(-32768.,32767.) as i16;b.copy_from_slice(&v.to_le_bytes());let y=v as f32/32768.;
    report.peak_in=report.peak_in.max(x.abs());report.peak_out=report.peak_out.max(y.abs());energy_in+=f64::from(x)*f64::from(x);energy_out+=f64::from(y)*f64::from(y);}
@@ -100,4 +117,19 @@ mod dynamics43 {
  #[test]fn compresses_and_reports(){let b=wav(&vec![20000;8000],1);let (o,r)=process_bus_dynamics(&b,BusDynamics::default()).unwrap();assert_eq!(o.len(),b.len());assert_eq!(r.frames,8000);assert!(r.rms_out<r.rms_in*0.6);assert!(r.max_reduction_db>6.);}
  #[test]fn gate_and_stereo_link(){let b=wav(&vec![10;16000],2);let(o,r)=process_bus_dynamics(&b,BusDynamics::default()).unwrap();assert!(r.rms_out<r.rms_in*0.2);assert!(o[44..].chunks_exact(4).all(|f|f[..2]==f[2..]));}
  #[test]fn rejects_bad_settings_and_truncation(){let b=wav(&[1,2],1);assert!(process_bus_dynamics(&b,BusDynamics{ratio:f32::NAN,..Default::default()}).is_err());assert!(process_bus_dynamics(&b[..b.len()-1],BusDynamics::default()).is_err());}
+}
+
+#[cfg(test)]mod dynamics47{
+ use super::*;
+ #[test]fn envelope_attack_release_and_reset(){
+  let mut env=DynamicsEnvelope::new(48000,BusDynamics{compressor_db:-12.,ratio:4.,gate_db:-70.,attack_ms:5.,release_ms:100.}).unwrap();
+  let first=env.next_gain(1.);assert!(first<1.&&first>0.9);
+  let mut last=first;for _ in 0..4800{last=env.next_gain(1.);}assert!(last<0.4&&last>0.3);
+  let recover=env.next_gain(0.1);assert!(recover>last&&recover<1.);
+  env.reset();assert_eq!(env.next_gain(0.1),1.);
+ }
+ #[test]fn presets_valid_and_gain_bounded(){
+  for (_,preset) in DYNAMICS_PRESETS{let mut env=DynamicsEnvelope::new(8000,preset).unwrap();for peak in [0.,0.1,1.,f32::NAN,f32::INFINITY,-1.]{let g=env.next_gain(peak);assert!((0. ..=1.).contains(&g));}}
+  assert!(DynamicsEnvelope::new(0,BusDynamics::default()).is_err());
+ }
 }
