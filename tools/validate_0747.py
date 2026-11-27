@@ -15,6 +15,6 @@ class AudioLight47(unittest.TestCase):
   self.assertLess(s.index('light.w==0.0'),s.index('let any_blocker'))
   self.assertLess(s.index('if visible==0.0'),s.index('visible/=f32(samples)'))
   v=tomllib.loads(read('Cargo.toml'))['package']['version']
-  self.assertEqual(v,'0.7.47')
+  self.assertEqual(v,'0.7.48')
   self.assertEqual([p['version'] for p in tomllib.loads(read('Cargo.lock'))['package'] if p['name']=='forge_engine'],[v])
 if __name__=='__main__':unittest.main()

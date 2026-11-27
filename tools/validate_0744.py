@@ -12,7 +12,7 @@ class Save44(unittest.TestCase):
   self.assertIn('ui.selectable_value(&mut game.checkpoint_slot',p)
  def test_version_and_base(self):
   version=tomllib.loads(read('Cargo.toml'))['package']['version']
-  self.assertEqual(version,'0.7.47')
+  self.assertEqual(version,'0.7.48')
   self.assertEqual([p['version'] for p in tomllib.loads(read('Cargo.lock'))['package'] if p['name']=='forge_engine'],[version])
-  self.assertEqual(read('docs/PATCH_BASE.txt').strip(),'9a10d2387e9a4f9b9ca3324c737b3b8bea61df98')
+  self.assertEqual(read('docs/PATCH_BASE.txt').strip(),'291b939b605677d26ff99c501d8209efce70de9d')
 if __name__=='__main__':unittest.main()

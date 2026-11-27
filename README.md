@@ -1,3 +1,7 @@
+# Haver Engine v0.7.48 — Performance & GPU
+
+Bounded GPU instancing workloads, improved UI frame diagnostics, stale texture decode rejection. Candidate based on CI-verified v0.7.47. See `docs/RELEASE_0748.md`.
+
 # Haver Engine v0.7.47 — Audio Mixer & Lighting
 
 Reusable dynamics envelope, offline analysis and presets; zero-contribution light rejection. Candidate based on CI-verified v0.7.46. See `docs/RELEASE_0747.md`.

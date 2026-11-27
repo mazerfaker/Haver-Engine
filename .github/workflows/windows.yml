@@ -138,6 +138,8 @@ jobs:
         shell: pwsh
         run: |
           cargo check --locked --no-default-features --features gpu-instancing-lab,audio-dsp-lab --examples 2>&1 | Tee-Object -FilePath forge-labs.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked --no-default-features --features gpu-instancing-lab --example gpu_instancing_lab 2>&1 | Tee-Object -FilePath forge-labs.log -Append
           exit $LASTEXITCODE
       - name: Verify lockfile unchanged
         if: always()
@@ -182,3 +184,5 @@ jobs:
 # Historic package: HaverEngine-v0.7.43-Windows-portable.zip
 
 # Current package: HaverEngine-v0.7.47-Windows-portable.zip
+
+# Current package: HaverEngine-v0.7.48-Windows-portable.zip

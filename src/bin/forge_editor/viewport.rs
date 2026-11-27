@@ -3,6 +3,9 @@ use super::*;
 #[derive(Component)] pub(super) struct SceneCamera;
 #[derive(Component)] pub(super) struct SceneSprite(Uuid);
 use std::sync::atomic::{AtomicU64,Ordering};
+static STALE:AtomicU64=AtomicU64::new(0);
+pub(super) fn stale_decodes()->u64{STALE.load(Ordering::Relaxed)}
+fn decode_is_current(active:bool,expected:Stamp,actual:Option<Stamp>)->bool{active&&actual==Some(expected)}
 static USED:AtomicU64=AtomicU64::new(0);static HITS:AtomicU64=AtomicU64::new(0);static MISSES:AtomicU64=AtomicU64::new(0);static EVICTIONS:AtomicU64=AtomicU64::new(0);
 pub(super) fn cache_stats()->(u64,u64,u64,u64){(USED.load(Ordering::Relaxed),HITS.load(Ordering::Relaxed),MISSES.load(Ordering::Relaxed),EVICTIONS.load(Ordering::Relaxed))}
 type Stamp = std::time::SystemTime;
@@ -27,10 +30,14 @@ impl Default for TextureCache {
  }
 }
 impl TextureCache {
- fn poll(&mut self,images:&mut Assets<Image>){
+ fn poll(&mut self,images:&mut Assets<Image>,paths:&std::collections::HashSet<PathBuf>){
   let decoded:Vec<_>=self.rx.lock().unwrap().try_iter().take(4).collect();
   for (path,stamp,result) in decoded {
    self.pending.remove(&path);
+   let active=paths.contains(&path);
+   let actual=if active{std::fs::metadata(&path).and_then(|m|m.modified()).ok()}else{None};
+   if active{self.checks.insert(path.clone(),(std::time::Instant::now(),actual));}
+   if !decode_is_current(active,stamp,actual){STALE.fetch_add(1,Ordering::Relaxed);continue;}
    match result {Ok(rgba)=>{
     let bytes=u64::from(rgba.width())*u64::from(rgba.height())*4;
     if bytes>self.budget {self.failed.insert(path,stamp);continue;}
@@ -69,7 +76,7 @@ pub(super) fn sync_viewport(mut commands:Commands,e:Res<Editor>,target:Res<ViewT
  let new_pins:std::collections::HashSet<_>=ordered.iter().filter(|o|e.workspace.prefs.camera || e.master.game || o.motion.visual_channels.contains_key(&o.clip_name) || forge_engine::spatial::visible(forge_engine::sprite_center(o,project.isometric),o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)])).filter_map(|o|e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel))).collect();
  if new_pins!=cache.pinned {cache.failed.clear();cache.pinned=new_pins;}
  let before=cache.ready.len();cache.ready.retain(|path,_|paths.contains(path));if before!=cache.ready.len(){EVICTIONS.fetch_add((before-cache.ready.len()) as u64,Ordering::Relaxed);cache.failed.clear();}cache.failed.retain(|path,_|paths.contains(path));cache.checks.retain(|path,_|paths.contains(path));
- cache.poll(&mut images);
+ cache.poll(&mut images,&paths);
  USED.store(cache.ready.values().map(|v|v.2).sum(),Ordering::Relaxed);for (i,o) in ordered.iter().enumerate(){let pos=forge_engine::sprite_center(o,project.isometric);let (frame_center,frame_size)=forge_engine::sprite_frame_geometry(o,project.isometric,forge_engine::animation_time(o,time));let transform=Transform::from_xyz(frame_center[0],frame_center[1],i as f32*0.01).with_rotation(Quat::from_rotation_z(o.rotation.to_radians()));let c=forge_engine::lit_color(o,project);let mut sprite=Sprite::from_color(Color::srgba_u8(c[0],c[1],c[2],forge_engine::sprite_visual_alpha(o,forge_engine::animation_time(o,time),c[3])),Vec2::from_array(frame_size));
  let visible=e.workspace.prefs.camera || e.master.game || o.motion.visual_channels.contains_key(&o.clip_name) || forge_engine::spatial::visible(pos,o.size,o.rotation,[ct.translation.x,ct.translation.y],[w as f32/(2.*e.zoom),h as f32/(2.*e.zoom)]);if visible {if let Some(path)=e.path.as_ref().and_then(|p|p.parent()).zip(o.sprite.as_ref()).map(|(root,rel)|root.join(rel)) {if let Some(handle)=cache.get(&path){sprite.image=handle.clone();if let Some(img)=images.get(&handle){let uv=o.animation.uv(forge_engine::animation_time(o,time));let size=img.size().as_vec2();sprite.rect=Some(Rect::from_corners(Vec2::from_array(uv[0])*size,Vec2::from_array(uv[2])*size));}}}}
  if let Some(entity)=existing.get(&o.id){if let Ok((_,_,mut s,mut t))=sprites.get_mut(*entity){*s=sprite;*t=transform;}}else{commands.spawn((SceneSprite(o.id),sprite,transform));}}
@@ -91,3 +98,5 @@ pub(super) fn gpu_scene_sync(e:Res<Editor>,mut draw:forge_engine::gpu_scene::Gpu
 }
 
 pub(super) fn gpu_particles_sync(e:Res<Editor>,time:Res<Time>,mut draw:forge_engine::gpu_particles::ParticleDraw){let p=e.play.as_ref().unwrap_or(&e.project);let dt=if e.play.is_some()&&e.master.paused{0.}else{time.delta_secs()};draw.sync(p,e.path.as_ref().and_then(|p|p.parent()),dt);}
+
+#[cfg(test)]mod cache48{use super::*;#[test]fn stale_decode_rejected(){let a=std::time::UNIX_EPOCH;let b=a+std::time::Duration::from_secs(1);assert!(decode_is_current(true,a,Some(a)));assert!(!decode_is_current(false,a,Some(a)));assert!(!decode_is_current(true,a,Some(b)));assert!(!decode_is_current(true,a,None));}}
