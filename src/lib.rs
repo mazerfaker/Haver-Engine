@@ -183,3 +183,5 @@ pub use inventory::{Inventory,ItemStack,ItemDefinition};
 pub mod save_game;
 
 pub mod benchmark;
+
+pub mod instance_plan;
