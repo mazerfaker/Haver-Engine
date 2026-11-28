@@ -181,3 +181,5 @@ pub fn move_hud_widget(w:&mut Widget,delta:[f32;2],viewport:[f32;2],design:[u32;
 pub mod inventory;
 pub use inventory::{Inventory,ItemStack,ItemDefinition};
 pub mod save_game;
+
+pub mod benchmark;
