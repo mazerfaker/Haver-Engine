@@ -6,8 +6,10 @@ def read(p):return (ROOT/p).read_text(encoding='utf-8')
 class Perf48(unittest.TestCase):
  def test_lab(self):
   s=read('experimental/gpu_instancing_lab.rs')
-  for term in ['MAX_INSTANCES:u32=65536','b.count.div_ceil(64)','pass.draw(0..6,0..b.count)','FrameTimeDiagnosticsPlugin','workload_bounds']:self.assertIn(term,s)
-  self.assertIn('ValidateRange(1,65536)',read('tools/run_gpu_instancing_lab.ps1'))
+  for term in ['MAX_INSTANCES:u32=100000','b.count.div_ceil(64)','pass.draw(0..6,0..b.count)','FrameTimeDiagnosticsPlugin','workload_bounds']:self.assertIn(term,s)
+  self.assertIn('ValidateRange(1,100000)',read('tools/run_gpu_instancing_lab.ps1'))
+  self.assertIn('instance_count(Some("100000"))',s)
+  self.assertIn('instance_count(Some("65536"))',s)
  def test_cache_and_stats(self):
   v=read('src/bin/forge_editor/viewport.rs');m=read('src/bin/forge_editor/max.rs')
   for term in ['decode_is_current(active,stamp,actual)','cache.poll(&mut images,&paths)','stale_decode_rejected']:self.assertIn(term,v)

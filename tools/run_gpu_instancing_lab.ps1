@@ -1,4 +1,4 @@
-param([ValidateRange(1,65536)][int]$Instances=1024,[switch]$GpuProfile)
+param([ValidateRange(1,100000)][int]$Instances=1024,[switch]$GpuProfile)
 # Manual hardware verification, never a claim of runtime success from cargo check.
 $ErrorActionPreference='Stop'
 Set-Location (Join-Path $PSScriptRoot '..')
