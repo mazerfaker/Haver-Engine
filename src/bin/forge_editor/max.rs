@@ -78,7 +78,17 @@ fn benchmark_window(ctx:&egui::Context,e:&mut Editor,dt:f32){
     if !b.benchmark_open { return; }
     let mut open=true;
     egui::Window::new(tr(e.uk,"Студія бенчмарків","Benchmark Studio")).open(&mut open).show(ctx,|ui|{
-        ui.label(tr(e.uk,"Інтервали кадрів редактора, не час GPU.","Editor frame intervals, not GPU execution time."));
+        ui.label(tr(e.uk,"Інтервали кадрів редактора, не час GPU.","Editor frame intervals, not GPU execution time."));ui.collapsing(tr(e.uk,"Аналіз груп спрайтів","Sprite group analysis"),|ui|{
+            if ui.button(tr(e.uk,"Аналізувати сцену","Analyze scene")).clicked(){
+                let p=e.play.as_ref().unwrap_or(&e.project);
+                let plan=forge_engine::instance_plan::plan(p);
+                ui.ctx().data_mut(|d|d.insert_temp(egui::Id::new("instance_plan49"),(plan.candidate_sprites,plan.candidate_groups,plan.fallback_objects)));
+            }
+            if let Some((sprites,groups,fallback))=ui.ctx().data(|d|d.get_temp::<(usize,usize,usize)>(egui::Id::new("instance_plan49"))){
+                ui.label(format!("Candidate sprites: {sprites} | groups: {groups} | fallback: {fallback}"));
+                ui.small("Snapshot only. No renderer switch or measured draw-call reduction.");
+            }
+        });
         ui.add_enabled_ui(!b.benchmark_active,|ui|{
             ui.horizontal(|ui|{ui.label(tr(e.uk,"Кадри","Frames"));for n in [300,600,1200,3600]{ui.selectable_value(&mut b.benchmark_target,n,n.to_string());}});
             if ui.button(tr(e.uk,"Почати вимірювання","Start capture")).clicked(){b.benchmark_samples=Default::default();b.benchmark_warmup=120;b.benchmark_active=true;ctx.request_repaint();}
