@@ -10,6 +10,8 @@ impl FrameSamples {
         if !ms.is_finite() || ms <= 0.0 || ms > 60000.0 || self.samples.len() >= Self::LIMIT { return false; }
         self.samples.push(ms); true
     }
+    pub fn len(&self) -> usize { self.samples.len() }
+    pub fn is_empty(&self) -> bool { self.samples.is_empty() }
     pub fn report(&self) -> Option<FrameReport> {
         if self.samples.is_empty() { return None; }
         let mut sorted = self.samples.clone();
